@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -15,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from api.rate_limit import limiter
 from core.config import get_settings
 from core.logging import get_logger, setup_logging
+from core.security import SecurityHeadersMiddleware, build_csp_header
 
 
 @asynccontextmanager
@@ -38,13 +40,30 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ── Rate limiting ──────────────────────────────────────────────
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ── Security headers ───────────────────────────────────────────
+app.add_middleware(SecurityHeadersMiddleware)
+
+# ── CORS ───────────────────────────────────────────────────────
+app_settings = get_settings()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=app_settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 
 @app.get("/healthz")
 async def healthz():
-    return JSONResponse({"status": "ok", "version": "0.1.0"})
+    return JSONResponse(
+        {"status": "ok", "version": "0.1.0"},
+        headers={"Content-Security-Policy": build_csp_header()},
+    )
 
 
 from api.routes_auth import router as auth_router  # noqa: E402

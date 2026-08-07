@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite+aiosqlite:///./data/jellynews.db"
 
     # Security
+    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:8000"]
     JWT_EXPIRATION_MINUTES: int = 60
     JWT_REFRESH_EXPIRATION_DAYS: int = 7
     RATE_LIMIT_LOGIN: str = "5/minute"
