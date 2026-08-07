@@ -6,10 +6,13 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from starlette.responses import JSONResponse
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+from api.rate_limit import limiter
 from core.config import get_settings
 from core.logging import get_logger, setup_logging
 
@@ -35,11 +38,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 
 @app.get("/healthz")
 async def healthz():
     return JSONResponse({"status": "ok", "version": "0.1.0"})
 
+
+from api.routes_auth import router as auth_router  # noqa: E402
+from api.routes_setup import router as setup_router  # noqa: E402
+
+app.include_router(auth_router)
+app.include_router(setup_router)
 
 # In production, serve the built Vue frontend as static files
 static_dir = Path(__file__).parent / "static"

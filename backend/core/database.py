@@ -19,11 +19,13 @@ def _ensure_data_dir() -> None:
 
 _ensure_data_dir()
 
-# Convert sqlite:/// to sqlite+aiosqlite:/// for async driver
-database_url_async = settings.DATABASE_URL.replace("sqlite:///", "sqlite+aiosqlite:///")
+# Use aiosqlite for async operations; add prefix only if missing
+_database_url = settings.DATABASE_URL
+if not _database_url.startswith("sqlite+aiosqlite"):
+    _database_url = _database_url.replace("sqlite:///", "sqlite+aiosqlite:///", 1)
 
 engine = create_async_engine(
-    database_url_async,
+    _database_url,
     poolclass=NullPool,
     connect_args={"check_same_thread": False},
 )

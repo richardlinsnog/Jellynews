@@ -17,3 +17,7 @@ limiter = Limiter(
 login_rate_limit = settings.RATE_LIMIT_LOGIN
 
 
+def setup_rate_limit(requests: int, interval: str) -> str:
+    return f"{requests}/{interval}"
+
+
