@@ -1,0 +1,42 @@
+
+# JellyNews — Docker Compose (Example for New Users)
+# 
+# Quick start:
+#   1. cp .env.example .env
+#   2. Edit .env — set APP_SECRET_KEY to a strong random string
+#   3. docker compose up -d
+#   4. Open http://localhost:8000 and complete the setup wizard
+#
+# Requirements: Docker 24+ and Docker Compose v2
+
+services:
+  jellynews:
+    # Replace with a tagged version for production use, e.g.:
+    # image: ghcr.io/jellynews/jellynews:v0.1.0
+    build: .
+    container_name: jellynews
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persistent data (database, cached images, settings)
+      - jellynews_data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
+    # Optional: add healthcheck for external monitoring (Uptime Kuma, Netdata, etc.)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/healthz').raise_for_status()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  jellynews_data:
+    # Optional: bind to a host directory for easier backup
+    # driver: local
+    # driver_opts:
+    #   type: none
+    #   o: bind
+    #   device: /path/to/your/backups/jellynews
+

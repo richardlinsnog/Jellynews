@@ -1,0 +1,15 @@
+services:
+  jellynews:
+    build: .
+    container_name: jellynews
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - jellynews_data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
+
+volumes:
+  jellynews_data:
+
