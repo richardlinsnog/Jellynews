@@ -11,10 +11,10 @@ from sqlalchemy import pool
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from core.config import settings
+from models.app_settings import AppSettings  # noqa: F401 — register in Base.metadata
 from models.base import Base
 from models.user import User  # noqa: F401 — register in Base.metadata
-from models.app_settings import AppSettings  # noqa: F401 — register in Base.metadata
-from core.config import settings
 
 target_metadata = Base.metadata
 

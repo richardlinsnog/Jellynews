@@ -2,8 +2,9 @@ import logging
 from typing import Any
 
 import structlog
-
 from core.config import settings
+
+
 def setup_logging() -> None:
     shared_processors: list[Any] = [
         structlog.contextvars.merge_contextvars,

@@ -3,16 +3,13 @@
 
 from typing import Self
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, Field, model_validator
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from api.deps import get_current_user
 from api.rate_limit import limiter, login_rate_limit
 from core.database import get_db
 from core.logging import get_logger
-from models.user import UserRole
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from pydantic import BaseModel, Field, model_validator
 from services.auth import get_auth_service
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger(__name__)
 
@@ -92,8 +89,8 @@ async def refresh(
         )
 
     user_id = int(payload["sub"])
-    from sqlalchemy import select
     from models.user import User
+    from sqlalchemy import select
 
     stmt = select(User).where(User.id == user_id)
     result = await db.execute(stmt)

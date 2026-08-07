@@ -4,15 +4,12 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import os
-from typing import Optional
-
-from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 from core.config import settings
 from core.logging import get_logger
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 logger = get_logger(__name__)
 
@@ -25,8 +22,8 @@ class SecretsVaultService:
     2. Derived from APP_SECRET_KEY + salt via PBKDF2 (always available)
     """
 
-    _instance: Optional[SecretsVaultService] = None
-    _fernet: Optional[Fernet] = None
+    _instance: SecretsVaultService | None = None
+    _fernet: Fernet | None = None
 
     def __new__(cls) -> SecretsVaultService:
         if cls._instance is None:

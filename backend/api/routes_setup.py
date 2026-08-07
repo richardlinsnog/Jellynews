@@ -1,15 +1,14 @@
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from api.rate_limit import limiter
 from core.config import settings
 from core.database import get_db
 from core.logging import get_logger
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from models.user import UserRole
+from pydantic import BaseModel, Field
 from services.auth import get_auth_service
 from services.vault import get_vault
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger(__name__)
 

@@ -3,18 +3,16 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 import jwt
 from argon2 import PasswordHasher
-from argon2.exceptions import VerificationError, InvalidHashError
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from argon2.exceptions import InvalidHashError, VerificationError
 from core.config import settings
 from core.logging import get_logger
 from models.user import User, UserRole
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger(__name__)
 
@@ -57,7 +55,7 @@ class AuthService:
     ) -> str:
         if expires_minutes is None:
             expires_minutes = settings.JWT_EXPIRATION_MINUTES
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         payload = {
             "sub": str(user_id),
             "username": username,
@@ -69,7 +67,7 @@ class AuthService:
         return jwt.encode(payload, self._secret(), algorithm=JWT_ALGORITHM)
 
     def create_refresh_token(self, user_id: int) -> str:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         payload = {
             "sub": str(user_id),
             "iat": now,
@@ -83,7 +81,7 @@ class AuthService:
 
     async def authenticate(
         self, db: AsyncSession, username: str, password: str
-    ) -> Optional[User]:
+    ) -> User | None:
         stmt = select(User).where(User.username == username)
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()

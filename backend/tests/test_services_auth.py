@@ -8,10 +8,9 @@ from __future__ import annotations
 import os
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from models.user import UserRole
 from services.auth import AuthService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class TestPasswordHashing:

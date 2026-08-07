@@ -1,0 +1,86 @@
+
+
+
+name: CI
+
+on:
+  push:
+    branches: [main, feat/week-1-infra-base]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint (Ruff)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install dependencies
+        run: python -m pip install ruff
+      - name: Lint
+        run: ruff check .
+
+  typecheck:
+    name: Type Check (Mypy)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Type check
+        run: mypy .
+
+  test:
+    name: Tests (Pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run tests
+        run: python -m pytest tests/ -v
+
+  build:
+    name: Build (Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: jellynews:ci-test
+      - name: Smoke test container
+        run: |
+          docker run --rm -d --name jellynews-ci -p 8000:8000 \
+            -e APP_SECRET_KEY=ci-test-key \
+            jellynews:ci-test
+          sleep 5
+          curl -f http://localhost:8000/healthz
+          docker stop jellynews-ci
+

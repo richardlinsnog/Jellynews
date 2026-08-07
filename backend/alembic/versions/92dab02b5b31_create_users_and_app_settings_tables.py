@@ -1,21 +1,20 @@
 """create users and app_settings tables
 
 Revision ID: 92dab02b5b31
-Revises: 
+Revises:
 Create Date: 2026-08-07 18:43:23.579893
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '92dab02b5b31'
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -24,8 +23,12 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('key', sa.String(length=255), nullable=False),
     sa.Column('value', sa.Text(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True),
+        server_default=sa.text('(CURRENT_TIMESTAMP)'),
+        nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True),
+        server_default=sa.text('(CURRENT_TIMESTAMP)'),
+        nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_app_settings_key'), 'app_settings', ['key'], unique=True)
@@ -34,8 +37,12 @@ def upgrade() -> None:
     sa.Column('username', sa.String(length=150), nullable=False),
     sa.Column('password_hash', sa.String(length=255), nullable=False),
     sa.Column('role', sa.Enum('OWNER', 'EDITOR', name='user_role'), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True),
+        server_default=sa.text('(CURRENT_TIMESTAMP)'),
+        nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True),
+        server_default=sa.text('(CURRENT_TIMESTAMP)'),
+        nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_users_username'), 'users', ['username'], unique=True)

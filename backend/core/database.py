@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
+from core.config import settings
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
-
-from core.config import settings
 
 
 def _ensure_data_dir() -> None:
