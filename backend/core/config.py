@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     LOG_FORMAT: str = "json"
 
     # Database
-    DATABASE_URL: str = "sqlite:///./data/jellynews.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./data/jellynews.db"
 
     # Security
     JWT_EXPIRATION_MINUTES: int = 60
