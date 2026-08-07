@@ -65,16 +65,20 @@ async def login(
     )
 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
 @router.post("/refresh", response_model=TokenResponse)
 @limiter.limit("10/minute")
 async def refresh(
     request: Request,
-    refresh_token: str,
+    body: RefreshRequest,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     auth = get_auth_service()
     try:
-        payload = auth.decode_token(refresh_token)
+        payload = auth.decode_token(body.refresh_token)
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
