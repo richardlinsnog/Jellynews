@@ -67,9 +67,11 @@ async def healthz():
 
 
 from api.routes_auth import router as auth_router  # noqa: E402
+from api.routes_jellyfin import router as jellyfin_router  # noqa: E402
 from api.routes_setup import router as setup_router  # noqa: E402
 
 app.include_router(auth_router)
+app.include_router(jellyfin_router)
 app.include_router(setup_router)
 
 # In production, serve the built Vue frontend as static files
