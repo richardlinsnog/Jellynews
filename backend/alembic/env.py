@@ -16,6 +16,7 @@ from models.app_settings import AppSettings  # noqa: F401
 from models.base import Base
 from models.media_log import MediaLog  # noqa: F401
 from models.secret import Secret  # noqa: F401
+from models.template import Template  # noqa: F401
 from models.user import User  # noqa: F401
 
 target_metadata = Base.metadata
