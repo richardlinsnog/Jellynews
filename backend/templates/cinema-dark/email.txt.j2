@@ -1,0 +1,19 @@
+{{ server_name }} — Now Playing
+{{ "=" * (server_name | length + 15) }}
+
+{% if items_added %}
+{% for item in items_added %}
+✦ {{ item.Name }}{% if item.ProductionYear %} ({{ item.ProductionYear }}){% endif %}
+  {{ item.Type }}{% if item.LibraryName %} · {{ item.LibraryName }}{% endif %}
+{% endfor %}
+{% else %}
+The curtains are drawn — check back soon!
+{% endif %}
+
+{% if custom_news %}
+──────────────────────────────
+🎬 Director's Cut
+{{ custom_news }}
+{% endif %}
+
+Sent by JellyNews · {{ generated_at }}

@@ -1,0 +1,17 @@
+*{{ server_name }}* — New Arrivals 📼
+
+{% if items_added %}
+{% for item in items_added %}
+▸ *{{ item.Name }}*{% if item.ProductionYear %} ({{ item.ProductionYear }}){% endif %}
+  [{{ item.Type }}]{% if item.LibraryName %} · {{ item.LibraryName }}{% endif %}
+{% endfor %}
+{% else %}
+_[ NO SIGNAL — check back later ]_
+{% endif %}
+
+{% if custom_news %}
+📼 *BROADCAST*
+{{ custom_news }}
+{% endif %}
+
+_Sent by JellyNews · {{ generated_at }}_

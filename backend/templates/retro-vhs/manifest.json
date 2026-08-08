@@ -1,0 +1,18 @@
+{
+  "id": "retro-vhs",
+  "name": "Retro VHS",
+  "author": "JellyNews",
+  "version": "1.0.0",
+  "supports_channels": [
+    "email",
+    "telegram",
+    "discord",
+    "ntfy"
+  ],
+  "preview_image": "preview.png",
+  "variables_required": [
+    "items_added",
+    "server_name"
+  ],
+  "is_builtin": true
+}

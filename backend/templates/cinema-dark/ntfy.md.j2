@@ -1,0 +1,17 @@
+*{{ server_name }}* — Now Playing 🎬
+
+{% if items_added %}
+{% for item in items_added %}
+✦ *{{ item.Name }}*{% if item.ProductionYear %} ({{ item.ProductionYear }}){% endif %}
+  {{ item.Type }}{% if item.LibraryName %} · {{ item.LibraryName }}{% endif %}
+{% endfor %}
+{% else %}
+_The curtains are drawn — check back soon!_
+{% endif %}
+
+{% if custom_news %}
+🎬 *Director's Cut*
+{{ custom_news }}
+{% endif %}
+
+_Sent by JellyNews · {{ generated_at }}_

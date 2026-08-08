@@ -1,0 +1,20 @@
+
+{{ server_name }} — What's New
+{{ "=" * (server_name | length + 13) }}
+
+{% if items_added %}
+{% for item in items_added %}
+• {{ item.Name }}{% if item.ProductionYear %} ({{ item.ProductionYear }}){% endif %}
+  {{ item.Type }}{% if item.LibraryName %} · {{ item.LibraryName }}{% endif %}
+{% endfor %}
+{% else %}
+No new items this time — check back soon!
+{% endif %}
+
+{% if custom_news %}
+---
+📝 Updates
+{{ custom_news }}
+{% endif %}
+
+Sent by JellyNews · {{ generated_at }}

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ server_name }} — Now Playing</title>
+</head>
+<body style="font-family: 'Georgia', serif; max-width: 640px; margin: 0 auto; background: #1a1a2e; color: #eaeaea; padding: 24px;">
+
+  <header style="text-align: center; padding: 40px 0 32px; border-bottom: 2px solid #e94560;">
+    <h1 style="margin: 0; font-size: 28px; letter-spacing: 2px; color: #e94560;">{{ server_name }}</h1>
+    <p style="margin: 12px 0 0; color: #aaa; font-style: italic;">Now Playing</p>
+  </header>
+
+  {% if items_added %}
+    <main>
+      {% for item in items_added %}
+        <article style="background: #16213e; border-left: 4px solid #e94560; border-radius: 4px; padding: 16px; margin-bottom: 16px;">
+          <h2 style="margin: 0; font-size: 18px; color: #fff;">{{ item.Name }}</h2>
+          <div style="margin-top: 6px; font-size: 13px; color: #ccc;">
+            <span>{{ item.Type }}</span>
+            {% if item.ProductionYear %}
+              &middot; <span>{{ item.ProductionYear }}</span>
+            {% endif %}
+            {% if item.LibraryName %}
+              &middot; <span>{{ item.LibraryName }}</span>
+            {% endif %}
+          </div>
+          {% if item.Overview %}
+            <p style="margin-top: 10px; font-size: 13px; color: #bbb; line-height: 1.6;">{{ item.Overview | truncate(200) }}</p>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </main>
+  {% else %}
+    <p style="text-align: center; color: #888; font-style: italic;">The curtains are drawn — check back soon!</p>
+  {% endif %}
+
+  {% if custom_news %}
+    <footer style="margin-top: 32px; padding: 20px; background: #16213e; border-radius: 4px; border: 1px solid #30305a;">
+      <h2 style="font-size: 15px; margin: 0 0 8px; color: #e94560;">🎬 Director&rsquo;s Cut</h2>
+      <p style="margin: 0; font-size: 14px; color: #ccc;">{{ custom_news }}</p>
+    </footer>
+  {% endif %}
+
+  <p style="text-align: center; margin-top: 40px; font-size: 11px; color: #666;">
+    Sent by JellyNews &middot; {{ generated_at }}
+  </p>
+
+</body>
+</html>
