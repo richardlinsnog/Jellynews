@@ -192,12 +192,13 @@ class TemplateRegistry:
                 f"Render failed for '{template_id}/{channel}': {exc}",
             ) from exc
 
-    def reload(self) -> None:
+    def reload(self) -> int:
         """Force re-scan of the templates directory (e.g. after import)."""
         self._templates.clear()
         self._jinja_cache.clear()
         self._scanned = False
         self._ensure_scanned()
+        return len(self._templates)
 
     # ── Internal ────────────────────────────────────────────────
 
@@ -218,7 +219,11 @@ class TemplateRegistry:
                 self._templates[info.template_id] = info
                 log.info("template loaded", id=info.template_id, version=info.version)
             except TemplateError as exc:
-                log.warning("skipping invalid template package", path=str(package_dir), error=str(exc))
+                log.warning(
+                    "skipping invalid template package",
+                    path=str(package_dir),
+                    error=str(exc),
+                )
 
     def _load_package(self, package_dir: Path) -> TemplateInfo:
         manifest_path = package_dir / "manifest.json"
@@ -231,13 +236,14 @@ class TemplateRegistry:
             raise TemplateValidationError(f"Invalid JSON in {manifest_path}: {exc}") from exc
 
         required_str = {"id", "name", "author", "version"}
-        for field in required_str:
-            if field not in raw or not isinstance(raw[field], str) or not raw[field].strip():
-                raise TemplateValidationError(f"Missing or empty '{field}' in {manifest_path}")
+        for key in required_str:
+            if key not in raw or not isinstance(raw[key], str) or not raw[key].strip():
+                raise TemplateValidationError(f"Missing or empty '{key}' in {manifest_path}")
 
         channels_raw = raw.get("supports_channels", [])
         if not isinstance(channels_raw, list) or not channels_raw:
-            raise TemplateValidationError(f"supports_channels must be a non-empty list in {manifest_path}")
+            msg = f"supports_channels must be a non-empty list in {manifest_path}"
+            raise TemplateValidationError(msg)
 
         variables = raw.get("variables_required", [])
         if not isinstance(variables, list):
@@ -252,6 +258,11 @@ class TemplateRegistry:
             candidate = package_dir / f"{ch}{ext}"
             if candidate.exists():
                 channel_files[ch] = candidate
+
+        # Plain-text fallback for email (email.txt.j2)
+        txt_candidate = package_dir / "email.txt.j2"
+        if "email" in channel_files and txt_candidate.exists():
+            channel_files["email-plaintext"] = txt_candidate
 
         if not channel_files:
             raise TemplateValidationError(

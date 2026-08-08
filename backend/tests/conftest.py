@@ -17,6 +17,11 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 # Ensure backend package is importable
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import models.app_settings  # noqa: F401 — ensure table registration
+import models.media_log  # noqa: F401
+import models.secret  # noqa: F401
+import models.template  # noqa: F401
+import models.user  # noqa: F401
 from models.base import Base
 
 
@@ -95,3 +100,23 @@ async def client(app) -> AsyncGenerator[AsyncClient, None]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
+
+
+@pytest.fixture(autouse=True)
+def _reset_template_registry():
+    """Reset TemplateRegistry singleton between tests."""
+    from services.template_registry import TemplateRegistry
+
+    TemplateRegistry._instance = None
+    yield
+    TemplateRegistry._instance = None
+
+
+@pytest.fixture(autouse=True)
+def _restore_templates_root():
+    """Restore the templates root in case any test monkeypatched it."""
+    import services.template_registry as mod
+
+    before = mod._TEMPLATES_ROOT
+    yield
+    mod._TEMPLATES_ROOT = before
