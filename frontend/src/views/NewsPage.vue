@@ -162,7 +162,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -269,13 +269,12 @@ async function save() {
     if (creating.value) {
       const { data } = await api.post('/api/v1/news', payload)
       news.value.unshift(data)
+      total.value++
     } else {
       const { data } = await api.patch(`/api/v1/news/${editing.value}`, payload)
       const idx = news.value.findIndex(n => n.id === editing.value)
       if (idx !== -1) news.value[idx] = data
     }
-    total.value++
-    if (creating.value) total.value = Math.max(total.value, news.value.length)
 
     creating.value = false
     editing.value = null
