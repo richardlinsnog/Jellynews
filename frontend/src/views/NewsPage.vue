@@ -218,7 +218,7 @@ async function fetchNews() {
   loadError.value = ''
   try {
     const skip = (page.value - 1) * limit
-    const { data } = await api.get(`/api/v1/news?skip=${skip}&limit=${limit}`)
+    const { data } = await api.get(`/news?skip=${skip}&limit=${limit}`)
     news.value = data.items
     total.value = data.total
   } catch (e) {
@@ -267,11 +267,11 @@ async function save() {
 
   try {
     if (creating.value) {
-      const { data } = await api.post('/api/v1/news', payload)
+      const { data } = await api.post('/news', payload)
       news.value.unshift(data)
       total.value++
     } else {
-      const { data } = await api.patch(`/api/v1/news/${editing.value}`, payload)
+      const { data } = await api.patch(`/news/${editing.value}`, payload)
       const idx = news.value.findIndex(n => n.id === editing.value)
       if (idx !== -1) news.value[idx] = data
     }
@@ -293,7 +293,7 @@ async function doDelete() {
   if (!deleting.value) return
   deleteLoading.value = true
   try {
-    await api.delete(`/api/v1/news/${deleting.value.id}`)
+    await api.delete(`/news/${deleting.value.id}`)
     news.value = news.value.filter(n => n.id !== deleting.value.id)
     total.value = Math.max(0, total.value - 1)
   } catch (e) {

@@ -6,7 +6,6 @@ from api.deps import get_current_user
 from core.database import get_db
 from fastapi import APIRouter, Depends, Query
 from models.delivery_log import DeliveryLog
-from models.user import User
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,7 +36,7 @@ async def list_logs(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    _current_user: dict = Depends(get_current_user),
 ) -> DeliveryLogListResponse:
     stmt = select(DeliveryLog)
     count_stmt = select(func.count()).select_from(DeliveryLog)

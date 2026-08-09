@@ -17,6 +17,7 @@ from core.logging import get_logger
 from models.channel import Channel
 from models.delivery_log import DeliveryLog
 from models.secret import Secret
+from models.subscriber import Subscriber
 from pydantic.dataclasses import dataclass
 from schemas.jellyfin import JellyfinItem
 from services.channel_registry import ChannelRegistry
@@ -103,7 +104,12 @@ class NewsletterSender:
         # -- 3. Build context --
         context = self._build_context(new_items)
 
-        # -- 4. Send to each channel --
+        # -- 4. Load subscriber addresses for mass-mailing channels --
+        sub_stmt = select(Subscriber.email).where(Subscriber.active.is_(True))
+        sub_result = await db.execute(sub_stmt)
+        subscriber_emails = [row[0] for row in sub_result.fetchall()]
+
+        # -- 5. Send to each channel --
         for channel in channels:
             log_entry = DeliveryLog(channel_id=channel.id, success=False)
             try:
@@ -112,6 +118,10 @@ class NewsletterSender:
                     raise ValueError("Channel config not found")
 
                 config = _json.loads(vault.decrypt(secret.encrypted_value))
+
+                # Inject subscriber list into email channel if no explicit to_address
+                if channel.channel_type == "email" and subscriber_emails:
+                    config["_subscriber_emails"] = subscriber_emails
 
                 if channel.channel_type in _CHANNELS_WITH_RENDER:
                     try:

@@ -8,7 +8,6 @@ from core.database import get_db
 from core.logging import get_logger
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from models.custom_news import CustomNews
-from models.user import User
 from schemas.custom_news import (
     CustomNewsCreate,
     CustomNewsItem,
@@ -105,23 +104,24 @@ async def create_news(
     request: Request,
     body: CustomNewsCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ) -> CustomNewsItem:
     body_html = sanitize_html(body.body_html)
     body_text = html_to_text(body_html)
 
+    author_id = int(current_user["sub"])
     news = CustomNews(
         title=body.title.strip(),
         body_html=body_html,
         body_text=body_text,
-        author_id=current_user.id,
+        author_id=author_id,
         published=body.published,
     )
     db.add(news)
     await db.commit()
     await db.refresh(news)
 
-    logger.info("custom_news_created", news_id=news.id, author_id=current_user.id)
+    logger.info("custom_news_created", news_id=news.id, author_id=author_id)
     return _to_item(news)
 
 
@@ -132,7 +132,7 @@ async def update_news(
     body: CustomNewsUpdate,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ) -> CustomNewsItem:
     stmt = select(CustomNews).where(CustomNews.id == news_id)
     result = await db.execute(stmt)
@@ -151,7 +151,7 @@ async def update_news(
     await db.commit()
     await db.refresh(news)
 
-    logger.info("custom_news_updated", news_id=news.id, author_id=current_user.id)
+    logger.info("custom_news_updated", news_id=news.id, user_sub=current_user["sub"])
     return _to_item(news)
 
 
@@ -161,7 +161,7 @@ async def delete_news(
     news_id: int,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
 ) -> None:
     stmt = select(CustomNews).where(CustomNews.id == news_id)
     result = await db.execute(stmt)
@@ -172,4 +172,4 @@ async def delete_news(
     await db.delete(news)
     await db.commit()
 
-    logger.info("custom_news_deleted", news_id=news_id, author_id=current_user.id)
+    logger.info("custom_news_deleted", news_id=news_id, user_sub=current_user["sub"])

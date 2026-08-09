@@ -10,7 +10,6 @@ from api.rate_limit import limiter
 from core.database import get_db
 from core.logging import get_logger
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from models.user import User
 from schemas.jellyfin import JellyfinItem, JellyfinItemType
 from services.jellyfin import JellyfinAuthError, JellyfinConnectionError, JellyfinService
 from sqlalchemy import select
@@ -56,7 +55,7 @@ async def _get_jellyfin_service(db: AsyncSession) -> JellyfinService:
 @router.get("/health")
 async def jellyfin_health(
     db: AsyncSession = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    _current_user: dict = Depends(get_current_user),
 ) -> dict:
     """Check connectivity to the configured Jellyfin server."""
     svc = await _get_jellyfin_service(db)
@@ -84,7 +83,7 @@ async def jellyfin_health(
 async def test_jellyfin_connection(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    _current_user: dict = Depends(get_current_user),
 ) -> dict:
     """Test the Jellyfin connection and return server info if successful."""
     svc = await _get_jellyfin_service(db)
@@ -119,7 +118,7 @@ async def get_latest_items(
     limit: int = 20,
     item_types: str | None = None,
     db: AsyncSession = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    _current_user: dict = Depends(get_current_user),
 ) -> list[JellyfinItem]:
     """Get the latest items from Jellyfin."""
     svc = await _get_jellyfin_service(db)
@@ -145,7 +144,7 @@ async def get_latest_items(
 @router.get("/libraries")
 async def get_libraries(
     db: AsyncSession = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    _current_user: dict = Depends(get_current_user),
 ) -> list[str]:
     """Get all library names from Jellyfin."""
     svc = await _get_jellyfin_service(db)

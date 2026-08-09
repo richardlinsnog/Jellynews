@@ -46,6 +46,11 @@ class EmailChannel(NotificationChannel):
             msg["To"] = config["to_address"]
             msg["Subject"] = content.subject or "Newsletter"
 
+            # Inject subscriber list via BCC for mass-mailing
+            subscriber_emails = config.pop("_subscriber_emails", None)
+            if subscriber_emails:
+                msg["Bcc"] = ", ".join(subscriber_emails)
+
             if content.body_text:
                 msg.attach(MIMEText(content.body_text, "plain", "utf-8"))
             if content.body_html:
@@ -62,7 +67,12 @@ class EmailChannel(NotificationChannel):
                 use_tls=use_tls,
             )
             elapsed = (time.monotonic() - start) * 1000
-            return SendResult(success=True, latency_ms=round(elapsed, 2))
+            recipient_count = len(subscriber_emails) if subscriber_emails else 1
+            return SendResult(
+                success=True,
+                latency_ms=round(elapsed, 2),
+                message_id=f"sent_to={recipient_count}",
+            )
         except Exception as exc:
             elapsed = (time.monotonic() - start) * 1000
             return SendResult(success=False, error=str(exc), latency_ms=round(elapsed, 2))

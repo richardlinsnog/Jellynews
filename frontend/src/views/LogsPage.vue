@@ -142,7 +142,7 @@ function getChannelName(id) {
 
 async function fetchChannels() {
   try {
-    const { data } = await api.get('/api/v1/channels')
+    const { data } = await api.get('/channels')
     channels.value = data.items || data || []
   } catch {
     // Non-blocking; logs still render with channel IDs
@@ -159,7 +159,7 @@ async function fetchLogs() {
     if (filterChannel.value) params.set('channel_id', filterChannel.value)
     if (filterSuccess.value !== null) params.set('success', filterSuccess.value.toString())
 
-    const { data } = await api.get(`/api/v1/logs?${params.toString()}`)
+    const { data } = await api.get(`/logs?${params.toString()}`)
     logs.value = data.items
     total.value = data.total
   } catch (e) {

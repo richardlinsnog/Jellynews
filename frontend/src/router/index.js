@@ -12,6 +12,7 @@ const routes = [
       { path: "templates", name: "Templates", component: () => import("../views/TemplatesPage.vue") },
       { path: "channels", name: "Channels", component: () => import("../views/ChannelsPage.vue") },
       { path: "news", name: "News", component: () => import("../views/NewsPage.vue") },
+      { path: "subscribers", name: "Subscribers", component: () => import("../views/SubscribersPage.vue") },
       { path: "logs", name: "Logs", component: () => import("../views/LogsPage.vue") },
     ],
   },

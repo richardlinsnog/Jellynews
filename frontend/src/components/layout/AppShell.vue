@@ -39,6 +39,7 @@ const nav = [
   { to: "/templates", label: "Templates", icon: "🎨" },
   { to: "/channels", label: "Channels", icon: "📡" },
   { to: "/news", label: "News", icon: "📝" },
+  { to: "/subscribers", label: "Subscribers", icon: "👥" },
   { to: "/logs", label: "Logs", icon: "📋" },
 ];
 </script>
