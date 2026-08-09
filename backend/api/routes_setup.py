@@ -1,4 +1,8 @@
 
+import asyncio
+import time
+
+import httpx
 from api.rate_limit import limiter
 from core.config import settings
 from core.database import get_db
@@ -14,6 +18,8 @@ logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/v1/setup", tags=["setup"])
 
+_CONNECTION_CHECK_TIMEOUT = 5.0  # seconds
+
 
 class SetupRequest(BaseModel):
     username: str = Field(min_length=3, max_length=150, pattern=r"^[a-zA-Z0-9_-]+$")
@@ -28,6 +34,19 @@ class SetupResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     refresh_token: str
+
+
+class JellyfinTestRequest(BaseModel):
+    jellyfin_url: str = Field(min_length=1, max_length=512)
+    jellyfin_api_key: str = Field(min_length=1, max_length=256)
+
+
+class JellyfinTestResponse(BaseModel):
+    ok: bool
+    server_name: str = ""
+    server_version: str = ""
+    latency_ms: float = 0.0
+    error: str = ""
 
 
 @router.post("", response_model=SetupResponse)
@@ -78,8 +97,10 @@ async def setup_wizard(
 
         await db.commit()
 
-    access_token = auth.create_access_token(user.id, user.username, user.role.value)
-    refresh_token = auth.create_refresh_token(user.id)
+    access_token = auth.create_access_token(
+        user.id, user.username, user.role.value, user.token_version,
+    )
+    refresh_token = auth.create_refresh_token(user.id, user.token_version)
 
     logger.info("setup_completed", username=user.username)
 
@@ -99,6 +120,73 @@ async def setup_status(db: AsyncSession = Depends(get_db)) -> dict:
         "setup_required": not await auth.user_exists(db),
         "first_run_enabled": settings.FIRST_RUN_SETUP,
     }
+
+
+@router.post("/test-jellyfin", response_model=JellyfinTestResponse)
+@limiter.limit("10/minute")
+async def test_jellyfin_connection(body: JellyfinTestRequest) -> JellyfinTestResponse:
+    """Test connectivity to a Jellyfin server with the given URL and API key."""
+    start = time.monotonic()
+
+    url = body.jellyfin_url.rstrip("/")
+    if not url.startswith(("https://", "http://")):
+        url = "https://" + url
+
+    headers = {
+        "X-Emby-Token": body.jellyfin_api_key,
+        "Accept": "application/json",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=_CONNECTION_CHECK_TIMEOUT) as client:
+            resp = await client.get(f"{url}/System/Info/Public", headers=headers)
+
+        latency = round((time.monotonic() - start) * 1000, 1)
+
+        if resp.is_success:
+            data = resp.json()
+            return JellyfinTestResponse(
+                ok=True,
+                server_name=data.get("ServerName", ""),
+                server_version=data.get("Version", ""),
+                latency_ms=latency,
+            )
+
+        if resp.status_code in (401, 403):
+            return JellyfinTestResponse(
+                ok=False,
+                error="Invalid API key — server rejected authentication",
+                latency_ms=latency,
+            )
+
+        return JellyfinTestResponse(
+            ok=False,
+            error=f"Server returned HTTP {resp.status_code}",
+            latency_ms=latency,
+        )
+
+    except httpx.ConnectError:
+        latency = round((time.monotonic() - start) * 1000, 1)
+        return JellyfinTestResponse(
+            ok=False,
+            error="Could not connect — check the URL and ensure the server is reachable",
+            latency_ms=latency,
+        )
+    except asyncio.TimeoutError:
+        latency = round((time.monotonic() - start) * 1000, 1)
+        return JellyfinTestResponse(
+            ok=False,
+            error="Connection timed out after 5 seconds",
+            latency_ms=latency,
+        )
+    except Exception as exc:
+        latency = round((time.monotonic() - start) * 1000, 1)
+        logger.warning("jellyfin_test_error", error=str(exc))
+        return JellyfinTestResponse(
+            ok=False,
+            error=str(exc)[:200],
+            latency_ms=latency,
+        )
 
 
 

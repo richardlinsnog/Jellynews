@@ -58,8 +58,17 @@
               class="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 focus:outline-none" />
             <p class="text-gray-500 text-xs mt-1">Optional — can be configured later</p>
           </div>
+          <button type="button" @click="testJellyfin" :disabled="testLoading || !form.jellyfin_url || !form.jellyfin_api_key"
+            class="rounded-lg border border-gray-700 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            {{ testLoading ? 'Testing…' : 'Test Connection' }}
+          </button>
           <p v-if="testResult" class="text-sm" :class="testResult.ok ? 'text-green-400' : 'text-red-400'">
-            {{ testResult.ok ? '✓ Connection successful' : '✗ ' + testResult.error }}
+            <template v-if="testResult.ok">
+              ✓ Connected — {{ testResult.server_name }} v{{ testResult.server_version }} ({{ testResult.latency_ms }}ms)
+            </template>
+            <template v-else>
+              ✗ {{ testResult.error }}
+            </template>
           </p>
         </template>
 
@@ -115,6 +124,7 @@ const router = useRouter();
 const currentStep = ref(1);
 const statusLoading = ref(true);
 const loading = ref(false);
+const testLoading = ref(false);
 const error = ref("");
 const setupRequired = ref(false);
 const setupDone = ref(false);
@@ -137,6 +147,22 @@ onMounted(async () => {
     statusLoading.value = false;
   }
 });
+
+async function testJellyfin() {
+  testResult.value = null;
+  testLoading.value = true;
+  try {
+    const { data } = await axios.post("/api/v1/setup/test-jellyfin", {
+      jellyfin_url: form.jellyfin_url,
+      jellyfin_api_key: form.jellyfin_api_key,
+    });
+    testResult.value = data;
+  } catch (e) {
+    testResult.value = { ok: false, error: e.response?.data?.detail || e.message || "Test failed" };
+  } finally {
+    testLoading.value = false;
+  }
+}
 
 async function handleSubmit() {
   error.value = "";
