@@ -14,6 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from core.config import settings
 from models.app_settings import AppSettings  # noqa: F401
 from models.base import Base
+from models.channel import Channel  # noqa: F401
+from models.delivery_log import DeliveryLog  # noqa: F401
 from models.media_log import MediaLog  # noqa: F401
 from models.secret import Secret  # noqa: F401
 from models.template import Template  # noqa: F401

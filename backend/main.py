@@ -67,11 +67,13 @@ async def healthz():
 
 
 from api.routes_auth import router as auth_router  # noqa: E402
+from api.routes_channels import router as channels_router  # noqa: E402
 from api.routes_jellyfin import router as jellyfin_router  # noqa: E402
 from api.routes_setup import router as setup_router  # noqa: E402
 from api.routes_templates import router as templates_router  # noqa: E402
 
 app.include_router(auth_router)
+app.include_router(channels_router)
 app.include_router(jellyfin_router)
 app.include_router(setup_router)
 app.include_router(templates_router)

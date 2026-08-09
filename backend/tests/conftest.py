@@ -18,6 +18,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import models.app_settings  # noqa: F401 — ensure table registration
+import models.channel  # noqa: F401
+import models.delivery_log  # noqa: F401
 import models.media_log  # noqa: F401
 import models.secret  # noqa: F401
 import models.template  # noqa: F401
