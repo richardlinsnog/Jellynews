@@ -34,3 +34,4 @@ mypy==1.14.1
 types-python-jose==3.5.0.20260408
 
 pytest-cov==7.1.0
+nh3==0.3.6
