@@ -4,6 +4,7 @@
 from typing import Self
 
 from api.rate_limit import limiter, login_rate_limit
+from core.audit import audit_log
 from core.database import get_db
 from core.logging import get_logger
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -53,6 +54,15 @@ async def login(
 
     access_token = auth.create_access_token(user.id, user.username, user.role.value)
     refresh_token = auth.create_refresh_token(user.id)
+
+    client_ip = request.client.host if request.client else "unknown"
+    audit_log(
+        db,
+        user_id=user.id,
+        action="auth.login",
+        ip_address=client_ip,
+        details={"client_ip": client_ip},
+    )
 
     return TokenResponse(
         access_token=access_token,

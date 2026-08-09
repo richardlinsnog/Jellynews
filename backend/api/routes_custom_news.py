@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from api.deps import get_current_user
 from api.rate_limit import limiter
+from core.audit import audit_log
 from core.database import get_db
 from core.logging import get_logger
+from core.sanitize import html_to_text, sanitize_html
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from models.custom_news import CustomNews
 from schemas.custom_news import (
@@ -21,41 +23,7 @@ logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/v1/news", tags=["custom-news"])
 
-
-def sanitize_html(html: str) -> str:
-    """Sanitize HTML using nh3 with allowed tags/attrs for newsletter content."""
-    import nh3
-
-    return nh3.clean(
-        html,
-        tags={
-            "h1", "h2", "h3", "h4", "h5", "h6",
-            "p", "br", "hr",
-            "strong", "em", "b", "i", "u", "s", "sub", "sup",
-            "a", "img",
-            "ul", "ol", "li",
-            "blockquote", "pre", "code",
-            "table", "thead", "tbody", "tr", "th", "td",
-            "div", "span",
-        },
-        attributes={
-            "a": {"href", "title", "rel", "target"},
-            "img": {"src", "alt", "width", "height"},
-            "*": {"class", "style"},
-        },
-    )
-
-
-def html_to_text(html: str) -> str:
-    """Extract plain text from sanitized HTML for non-HTML channels."""
-    import re
-
-    text = re.sub(r"<br\s*/?>", "\n", html)
-    text = re.sub(r"</p>", "\n\n", text)
-    text = re.sub(r"</li>", "\n", text)
-    text = re.sub(r"<[^>]+>", "", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()
+_CLIENT_IP = lambda r: r.client.host if r.client else "unknown"
 
 
 def _to_item(n: CustomNews) -> CustomNewsItem:
@@ -121,6 +89,15 @@ async def create_news(
     await db.commit()
     await db.refresh(news)
 
+    audit_log(
+        db,
+        user_id=author_id,
+        action="custom_news.create",
+        resource_type="custom_news",
+        resource_id=str(news.id),
+        ip_address=_CLIENT_IP(request),
+    )
+
     logger.info("custom_news_created", news_id=news.id, author_id=author_id)
     return _to_item(news)
 
@@ -151,6 +128,15 @@ async def update_news(
     await db.commit()
     await db.refresh(news)
 
+    audit_log(
+        db,
+        user_id=int(current_user["sub"]),
+        action="custom_news.update",
+        resource_type="custom_news",
+        resource_id=str(news.id),
+        ip_address=_CLIENT_IP(request),
+    )
+
     logger.info("custom_news_updated", news_id=news.id, user_sub=current_user["sub"])
     return _to_item(news)
 
@@ -171,5 +157,14 @@ async def delete_news(
 
     await db.delete(news)
     await db.commit()
+
+    audit_log(
+        db,
+        user_id=int(current_user["sub"]),
+        action="custom_news.delete",
+        resource_type="custom_news",
+        resource_id=str(news_id),
+        ip_address=_CLIENT_IP(request),
+    )
 
     logger.info("custom_news_deleted", news_id=news_id, user_sub=current_user["sub"])

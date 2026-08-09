@@ -29,6 +29,23 @@ async def lifespan(app: FastAPI):
         log.critical("APP_SECRET_KEY is not set — refusing to start")
         sys.exit(1)
 
+    if not app_settings.SECRETS_ENCRYPTION_KEY:
+        log.critical("SECRETS_ENCRYPTION_KEY is not set — refusing to start")
+        sys.exit(1)
+
+    # Auto-apply Alembic migrations on startup (idempotent)
+    try:
+        from alembic.config import Config
+        from alembic import command
+
+        alembic_cfg = Config(str(Path(__file__).parent / "alembic.ini"))
+        alembic_cfg.set_main_option("script_location", str(Path(__file__).parent / "alembic"))
+        command.upgrade(alembic_cfg, "head")
+        log.info("Database migrations up to date")
+    except Exception as exc:
+        log.error("Failed to apply migrations", error=str(exc))
+        # Don't crash — allow app to start so user can see healthz failure
+
     log.info("JellyNews starting", app_env=app_settings.APP_ENV, port=app_settings.PORT)
     yield
     log.info("JellyNews shutting down")
@@ -66,6 +83,7 @@ async def healthz():
     )
 
 
+from api.routes_audit import router as audit_router  # noqa: E402
 from api.routes_auth import router as auth_router  # noqa: E402
 from api.routes_channels import router as channels_router  # noqa: E402
 from api.routes_custom_news import router as custom_news_router  # noqa: E402
@@ -77,6 +95,7 @@ from api.routes_subscribers import router as subscribers_router  # noqa: E402
 from api.routes_subscribers import unsub_router  # noqa: E402
 from api.routes_templates import router as templates_router  # noqa: E402
 
+app.include_router(audit_router)
 app.include_router(auth_router)
 app.include_router(channels_router)
 app.include_router(custom_news_router)

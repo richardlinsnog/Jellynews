@@ -28,6 +28,9 @@ WORKDIR /app
 COPY --from=backend-deps /root/.local /home/jellynews/.local
 COPY --from=frontend-builder /build/frontend/dist /app/static
 COPY backend/ /app/
+COPY entrypoint.sh /entrypoint.sh
+
+RUN chmod +x /entrypoint.sh
 
 ENV PATH="/home/jellynews/.local/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
@@ -39,4 +42,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import httpx; httpx.get('http://localhost:8000/healthz').raise_for_status()"
 
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

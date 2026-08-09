@@ -21,6 +21,7 @@ from models.media_log import MediaLog  # noqa: F401
 from models.secret import Secret  # noqa: F401
 from models.subscriber import Subscriber  # noqa: F401
 from models.template import Template  # noqa: F401
+from models.audit_log import AuditLog  # noqa: F401
 from models.user import User  # noqa: F401
 
 target_metadata = Base.metadata

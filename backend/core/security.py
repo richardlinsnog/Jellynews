@@ -25,8 +25,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                 "accelerometer=(), camera=(), geolocation=(), gyroscope=(), "
                 "magnetometer=(), microphone=(), payment=(), usb=()"
             ),
+            "Content-Security-Policy": build_csp_header(),
             "Cache-Control": "no-store",
             "Pragma": "no-cache",
+            "Server": "JellyNews",
         }
 
         for header, value in headers.items():
