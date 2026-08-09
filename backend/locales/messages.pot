@@ -1,0 +1,13 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: en_US\n"
+
+msgid "newsletter.subject"
+msgstr "Your Jellyfin Weekly Update"
+
+msgid "newsletter.greeting"
+msgstr "Hello!"
+
+msgid "channel.connected"
+msgstr "Connection successful"

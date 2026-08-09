@@ -124,6 +124,13 @@ app.include_router(subscribers_router)
 app.include_router(templates_router)
 app.include_router(unsub_router)
 
+# ── i18n ─────────────────────────────────────────────────────────
+from core.i18n import init_i18n  # noqa: E402
+from core.i18n_middleware import I18nMiddleware  # noqa: E402
+
+init_i18n()
+app.add_middleware(I18nMiddleware)
+
 
 # In production, serve the built Vue frontend as static files
 static_dir = Path(__file__).parent / "static"
