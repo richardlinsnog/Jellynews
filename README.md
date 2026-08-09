@@ -26,7 +26,7 @@
 git clone https://github.com/your-org/jellynews.git
 cd jellynews
 cp .env.example .env
-# Edit .env — set APP_SECRET_KEY and a strong SECRETS_ENCRYPTION_KEY
+# Edit .env — set APP_SECRET_KEY (optionally also SECRETS_ENCRYPTION_KEY for production)
 
 # 2. Start
 docker compose up -d
@@ -69,7 +69,7 @@ See [`docs/jellynews-spec-tecnica.md`](docs/jellynews-spec-tecnica.md) for the f
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `APP_SECRET_KEY` | **Yes** | — | 64+ char random string for JWT signing |
-| `SECRETS_ENCRYPTION_KEY` | **Yes** | — | 32-byte base64 key for encrypting stored credentials |
+| `SECRETS_ENCRYPTION_KEY` | No | — | 32-byte base64 key for encrypting stored credentials (derived from APP_SECRET_KEY if unset; set a static key in production) |
 | `APP_ENV` | No | `production` | `development` or `production` |
 | `PORT` | No | `8000` | HTTP port |
 | `DATABASE_PATH` | No | `data/jellynews.db` | SQLite path |

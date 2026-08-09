@@ -30,8 +30,10 @@ async def lifespan(app: FastAPI):
         sys.exit(1)
 
     if not app_settings.SECRETS_ENCRYPTION_KEY:
-        log.critical("SECRETS_ENCRYPTION_KEY is not set — refusing to start")
-        sys.exit(1)
+        log.warning(
+            "SECRETS_ENCRYPTION_KEY is not set — secrets will be derived from APP_SECRET_KEY. "
+            "Set a static key for production to avoid credential invalidation on restarts."
+        )
 
     # Auto-apply Alembic migrations on startup (idempotent)
     try:
