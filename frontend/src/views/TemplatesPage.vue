@@ -2,10 +2,26 @@
   <div>
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold">Templates</h1>
-      <button @click="reload" :disabled="reloading"
-        class="rounded-lg border border-gray-700 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-800 disabled:opacity-50 transition-colors">
-        {{ reloading ? 'Reloading...' : 'Reload registry' }}
-      </button>
+      <div class="flex gap-2">
+        <label
+          class="rounded-lg border border-gray-700 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-800 disabled:opacity-50 transition-colors cursor-pointer">
+          {{ importing ? 'Importing…' : 'Import .zip' }}
+          <input type="file" accept=".zip" @change="handleImport" :disabled="importing" class="hidden" />
+        </label>
+        <button @click="reload" :disabled="reloading"
+          class="rounded-lg border border-gray-700 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-800 disabled:opacity-50 transition-colors">
+          {{ reloading ? 'Reloading...' : 'Reload registry' }}
+        </button>
+      </div>
+    </div>
+
+    <div v-if="importError" class="mb-4 p-3 bg-red-600/10 border border-red-600/30 rounded-lg text-sm text-red-400 flex justify-between items-center">
+      <span>{{ importError }}</span>
+      <button @click="importError = ''" class="text-red-300 hover:text-red-100 text-lg leading-none">&times;</button>
+    </div>
+    <div v-if="importSuccess" class="mb-4 p-3 bg-green-600/10 border border-green-600/30 rounded-lg text-sm text-green-400 flex justify-between items-center">
+      <span>{{ importSuccess }}</span>
+      <button @click="importSuccess = ''" class="text-green-300 hover:text-green-100 text-lg leading-none">&times;</button>
     </div>
 
     <div v-if="loading" class="text-gray-400 text-sm">Loading templates...</div>
@@ -81,34 +97,56 @@ import api from "../services/api";
 const templates = ref([]);
 const loading = ref(true);
 const reloading = ref(false);
+const importing = ref(false);
+const importError = ref("");
+const importSuccess = ref("");
 const selected = ref(null);
 const previewChannel = ref("email");
 const previewHtml = ref("");
 const previewLoading = ref(false);
 
-onMounted(async () => {
+onMounted(() => loadTemplates());
+
+async function loadTemplates() {
+  loading.value = true;
   try {
     const { data } = await api.get("/templates");
     templates.value = data;
   } finally {
     loading.value = false;
   }
-});
+}
 
 async function reload() {
   reloading.value = true;
   try {
-    const { data } = await api.post("/templates/reload");
-    templates.value = data.templates || [];
+    await api.post("/templates/reload");
     await loadTemplates();
   } finally {
     reloading.value = false;
   }
 }
 
-async function loadTemplates() {
-  const { data } = await api.get("/templates");
-  templates.value = data;
+async function handleImport(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  importError.value = "";
+  importSuccess.value = "";
+  importing.value = true;
+
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    const { data } = await api.post("/templates/import", form);
+    importSuccess.value = `Imported "${data.name}" v${data.version} (${data.templates_count} total templates)`;
+    await loadTemplates();
+  } catch (err) {
+    importError.value = err.response?.data?.detail || err.message || "Import failed";
+  } finally {
+    importing.value = false;
+    e.target.value = ""; // reset input so same file can be re-selected
+  }
 }
 
 async function selectTemplate(tpl) {
