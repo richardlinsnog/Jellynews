@@ -124,7 +124,10 @@ async def setup_status(db: AsyncSession = Depends(get_db)) -> dict:
 
 @router.post("/test-jellyfin", response_model=JellyfinTestResponse)
 @limiter.limit("10/minute")
-async def test_jellyfin_connection(body: JellyfinTestRequest) -> JellyfinTestResponse:
+async def test_jellyfin_connection(
+    request: Request,
+    body: JellyfinTestRequest,
+) -> JellyfinTestResponse:
     """Test connectivity to a Jellyfin server with the given URL and API key."""
     start = time.monotonic()
 

@@ -121,7 +121,7 @@ class TestChannelTypesEndpoint:
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert len(data["available_types"]) == 4
+        assert len(data["available_types"]) == 5
 
 
 class TestChannelCRUD:
