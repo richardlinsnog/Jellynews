@@ -10,13 +10,13 @@ from pydantic import BaseModel, Field
 class CustomNewsCreate(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     body_html: str = Field(min_length=1)
-    published: bool = True
+    status: str = "draft"
 
 
 class CustomNewsUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)
     body_html: str | None = Field(default=None, min_length=1)
-    published: bool | None = None
+    status: str | None = None
 
 
 class CustomNewsItem(BaseModel):
@@ -25,7 +25,7 @@ class CustomNewsItem(BaseModel):
     body_html: str
     body_text: str | None = None
     author_id: int | None = None
-    published: bool
+    status: str
     created_at: datetime
     updated_at: datetime | None = None
 

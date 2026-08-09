@@ -40,10 +40,10 @@
             <div class="flex items-center gap-2 mb-1">
               <h3 class="text-lg font-semibold text-white truncate">{{ item.title }}</h3>
               <span
-                :class="item.published ? 'bg-green-900/50 text-green-400' : 'bg-yellow-900/50 text-yellow-400'"
+                :class="item.status === 'sent' ? 'bg-green-900/50 text-green-400' : item.status === 'scheduled' ? 'bg-blue-900/50 text-blue-400' : 'bg-yellow-900/50 text-yellow-400'"
                 class="text-xs px-2 py-0.5 rounded-full font-medium"
               >
-                {{ item.published ? 'Published' : 'Draft' }}
+                {{ item.status === 'sent' ? 'Sent' : item.status === 'scheduled' ? 'Scheduled' : 'Draft' }}
               </span>
             </div>
             <p class="text-sm text-gray-400 line-clamp-2">{{ item.body_text || stripHtml(item.body_html) }}</p>
@@ -109,10 +109,13 @@
       </div>
 
       <div class="flex items-center gap-4 mb-6">
-        <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
-          <input v-model="form.published" type="checkbox" class="rounded bg-gray-700 border-gray-600 text-indigo-600 focus:ring-indigo-500" />
-          Published
-        </label>
+        <label class="text-sm font-medium text-gray-300">Status</label>
+        <select
+          v-model="form.status"
+          class="px-3 py-1.5 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option v-for="s in STATUS_OPTIONS" :key="s" :value="s">{{ s }}</option>
+        </select>
       </div>
 
       <div v-if="saveError" class="bg-red-900/30 border border-red-800 rounded-lg p-3 text-red-300 text-sm mb-4">
@@ -162,7 +165,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -184,7 +187,9 @@ const editing = ref(null)
 const deleting = ref(null)
 const deleteLoading = ref(false)
 
-const form = ref({ title: '', body_html: '', published: true })
+const STATUS_OPTIONS = ['draft', 'scheduled', 'sent']
+
+const form = ref({ title: '', body_html: '', status: 'draft' })
 
 const editor = useEditor({
   extensions: [
@@ -231,7 +236,7 @@ async function fetchNews() {
 function startCreate() {
   creating.value = true
   editing.value = null
-  form.value = { title: '', body_html: '', published: true }
+  form.value = { title: '', body_html: '', status: 'draft' }
   saveError.value = ''
   if (editor.value) {
     editor.value.commands.clearContent()
@@ -241,7 +246,7 @@ function startCreate() {
 function startEdit(item) {
   creating.value = false
   editing.value = item.id
-  form.value = { title: item.title, body_html: item.body_html, published: item.published }
+  form.value = { title: item.title, body_html: item.body_html, status: item.status }
   saveError.value = ''
   if (editor.value) {
     editor.value.commands.setContent(item.body_html)
@@ -262,7 +267,7 @@ async function save() {
   const payload = {
     title: form.value.title.trim(),
     body_html: editor.value.getHTML(),
-    published: form.value.published,
+    status: form.value.status,
   }
 
   try {

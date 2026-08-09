@@ -1,4 +1,4 @@
-"""CustomNews CRUD endpoints with nh3 sanitization."""
+"""CustomNews CRUD endpoints with nh3 sanitization and status workflow."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from core.database import get_db
 from core.logging import get_logger
 from core.sanitize import html_to_text, sanitize_html
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from models.custom_news import CustomNews
+from models.custom_news import CustomNews, NewsStatus
 from schemas.custom_news import (
     CustomNewsCreate,
     CustomNewsItem,
@@ -25,6 +25,8 @@ router = APIRouter(prefix="/api/v1/news", tags=["custom-news"])
 
 _CLIENT_IP = lambda r: r.client.host if r.client else "unknown"
 
+_VALID_STATUSES = {s.value for s in NewsStatus}
+
 
 def _to_item(n: CustomNews) -> CustomNewsItem:
     return CustomNewsItem.model_validate(n)
@@ -32,21 +34,21 @@ def _to_item(n: CustomNews) -> CustomNewsItem:
 
 @router.get("", response_model=CustomNewsListResponse)
 async def list_news(
-    published_only: bool = Query(False),
+    status_filter: str | None = Query(None, alias="status"),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
 ) -> CustomNewsListResponse:
     stmt = select(CustomNews)
-    if published_only:
-        stmt = stmt.where(CustomNews.published.is_(True))
+    count_stmt = select(func.count()).select_from(CustomNews)
+
+    if status_filter and status_filter in _VALID_STATUSES:
+        stmt = stmt.where(CustomNews.status == status_filter)
+        count_stmt = count_stmt.where(CustomNews.status == status_filter)
+
     stmt = stmt.order_by(CustomNews.created_at.desc())
 
-    count_stmt = select(func.count()).select_from(CustomNews)
-    if published_only:
-        count_stmt = count_stmt.where(CustomNews.published.is_(True))
     total = (await db.execute(count_stmt)).scalar() or 0
-
     result = await db.execute(stmt.offset(skip).limit(limit))
     items = [_to_item(n) for n in result.scalars().all()]
 
@@ -77,13 +79,15 @@ async def create_news(
     body_html = sanitize_html(body.body_html)
     body_text = html_to_text(body_html)
 
+    news_status = body.status if body.status in _VALID_STATUSES else NewsStatus.DRAFT
+
     author_id = int(current_user["sub"])
     news = CustomNews(
         title=body.title.strip(),
         body_html=body_html,
         body_text=body_text,
         author_id=author_id,
-        published=body.published,
+        status=news_status,
     )
     db.add(news)
     await db.commit()
@@ -122,8 +126,13 @@ async def update_news(
     if body.body_html is not None:
         news.body_html = sanitize_html(body.body_html)
         news.body_text = html_to_text(news.body_html)
-    if body.published is not None:
-        news.published = body.published
+    if body.status is not None:
+        if body.status not in _VALID_STATUSES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status: {body.status}. Use one of: {_VALID_STATUSES}",
+            )
+        news.status = body.status
 
     await db.commit()
     await db.refresh(news)
