@@ -17,11 +17,14 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 # Ensure backend package is importable
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import models.app_settings  # noqa: F401 — ensure table registration
+import models.app_settings  # noqa: F401
+import models.audit_log  # noqa: F401
 import models.channel  # noqa: F401
+import models.custom_news  # noqa: F401
 import models.delivery_log  # noqa: F401
 import models.media_log  # noqa: F401
 import models.secret  # noqa: F401
+import models.subscriber  # noqa: F401
 import models.template  # noqa: F401
 import models.user  # noqa: F401
 from models.base import Base
