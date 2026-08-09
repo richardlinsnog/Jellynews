@@ -51,6 +51,7 @@ class AuthService:
         user_id: int,
         username: str,
         role: str,
+        token_version: int = 0,
         expires_minutes: int | None = None,
     ) -> str:
         if expires_minutes is None:
@@ -60,16 +61,18 @@ class AuthService:
             "sub": str(user_id),
             "username": username,
             "role": role,
+            "ver": token_version,
             "iat": now,
             "exp": now + timedelta(minutes=expires_minutes),
             "type": "access",
         }
         return jwt.encode(payload, self._secret(), algorithm=JWT_ALGORITHM)
 
-    def create_refresh_token(self, user_id: int) -> str:
+    def create_refresh_token(self, user_id: int, token_version: int = 0) -> str:
         now = datetime.now(UTC)
         payload = {
             "sub": str(user_id),
+            "ver": token_version,
             "iat": now,
             "exp": now + timedelta(days=settings.JWT_REFRESH_EXPIRATION_DAYS),
             "type": "refresh",
