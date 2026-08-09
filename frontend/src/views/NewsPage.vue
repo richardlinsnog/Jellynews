@@ -2,7 +2,7 @@
 <template>
   <div>
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-white">Custom News</h1>
+      <h1 class="text-2xl font-bold text-white">News</h1>
       <button
         v-if="!editing && !creating"
         @click="startCreate"
