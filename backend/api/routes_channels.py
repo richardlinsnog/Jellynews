@@ -205,10 +205,14 @@ async def delete_channel(
     db: AsyncSession = Depends(get_db),
     _user: dict = Depends(get_current_user),
 ) -> None:
-    """Delete a channel instance."""
+    """Delete a channel instance and its associated secret."""
     row = await db.get(Channel, channel_id)
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Channel not found")
+
+    secret = await db.get(Secret, row.config_ref)
+    if secret:
+        await db.delete(secret)
 
     await db.delete(row)
     await db.commit()
