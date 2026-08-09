@@ -67,6 +67,13 @@ class TemplateRenderResponse(BaseModel):
     rendered: str
 
 
+class TemplateImportResponse(BaseModel):
+    template_id: str
+    name: str
+    version: str
+    templates_count: int
+
+
 class TemplateReloadResponse(BaseModel):
     message: str
     count: int
