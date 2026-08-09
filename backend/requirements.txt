@@ -38,3 +38,4 @@ types-python-jose==3.5.0.20260408
 pytest-cov==7.1.0
 nh3==0.3.6
 apscheduler==3.10.4
+premailer>=3.10.0

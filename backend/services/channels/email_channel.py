@@ -1,6 +1,7 @@
 
 
-"""Email delivery channel — SMTP with multipart/alternative support."""
+"""Email delivery channel — SMTP with premailer CSS inlining, List-Unsubscribe,
+and multipart/alternative support."""
 
 from __future__ import annotations
 
@@ -10,6 +11,7 @@ from email.mime.text import MIMEText
 from typing import Any
 
 import aiosmtplib
+from premailer import transform
 from services.channels.notification_channel import (
     ConnectionResult,
     ConnectionStatus,
@@ -17,6 +19,15 @@ from services.channels.notification_channel import (
     RenderedContent,
     SendResult,
 )
+
+_UNSUBSCRIBE_EMAIL_PLACEHOLDER = "unsubscribe@localhost"
+
+
+def _unsubscribe_url(config: dict[str, Any]) -> str:
+    return config.get(
+        "unsubscribe_url",
+        f"mailto:{_UNSUBSCRIBE_EMAIL_PLACEHOLDER}",
+    )
 
 
 class EmailChannel(NotificationChannel):
@@ -29,6 +40,7 @@ class EmailChannel(NotificationChannel):
         "smtp_use_tls",
         "from_address",
         "to_address",
+        "unsubscribe_url",
     ]
 
     async def validate_config(self, config: dict[str, Any]) -> bool:
@@ -46,6 +58,11 @@ class EmailChannel(NotificationChannel):
             msg["To"] = config["to_address"]
             msg["Subject"] = content.subject or "Newsletter"
 
+            # RFC 2369 / RFC 8058 List-Unsubscribe header
+            unsubscribe_url = _unsubscribe_url(config)
+            msg["List-Unsubscribe"] = f"<{unsubscribe_url}>"
+            msg["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
+
             # Inject subscriber list via BCC for mass-mailing
             subscriber_emails = config.pop("_subscriber_emails", None)
             if subscriber_emails:
@@ -54,7 +71,12 @@ class EmailChannel(NotificationChannel):
             if content.body_text:
                 msg.attach(MIMEText(content.body_text, "plain", "utf-8"))
             if content.body_html:
-                msg.attach(MIMEText(content.body_html, "html", "utf-8"))
+                # Inline CSS for email client compatibility
+                try:
+                    inlined_html = transform(content.body_html)
+                except Exception:
+                    inlined_html = content.body_html
+                msg.attach(MIMEText(inlined_html, "html", "utf-8"))
 
             use_tls = str(config.get("smtp_use_tls", "true")).lower() == "true"
 
