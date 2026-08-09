@@ -1,10 +1,6 @@
-
 <template>
-  <div>
-    <h1>JellyNews</h1>
-  </div>
+  <router-view />
 </template>
 
 <script setup>
 </script>
-

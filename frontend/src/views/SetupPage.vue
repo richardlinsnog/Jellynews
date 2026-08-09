@@ -1,0 +1,1 @@
+<template><div class="flex min-h-screen items-center justify-center"><p class="text-gray-400">Setup Wizard — coming soon</p></div></template>
