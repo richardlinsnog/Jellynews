@@ -49,7 +49,22 @@ async def lifespan(app: FastAPI):
         # Don't crash — allow app to start so user can see healthz failure
 
     log.info("JellyNews starting", app_env=app_settings.APP_ENV, port=app_settings.PORT)
+
+    # Start background scheduler
+    try:
+        from jobs import start_scheduler, shutdown_scheduler
+        start_scheduler()
+    except Exception as exc:
+        log.error("Failed to start scheduler", error=str(exc))
+
     yield
+
+    # Shutdown scheduler gracefully
+    try:
+        shutdown_scheduler()
+    except Exception:
+        pass
+
     log.info("JellyNews shutting down")
 
 
