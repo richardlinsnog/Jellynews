@@ -19,6 +19,7 @@ from services.channels.notification_channel import (
     RenderedContent,
     SendResult,
 )
+from services.channels.ntfy_channel import NtfyChannel
 from services.channels.telegram_channel import TelegramChannel
 from services.channels.webhook_channel import WebhookChannel
 
@@ -28,6 +29,7 @@ _BUILTIN_CHANNELS: dict[str, type[NotificationChannel]] = {
     "email": EmailChannel,
     "telegram": TelegramChannel,
     "discord": DiscordChannel,
+    "ntfy": NtfyChannel,
     "webhook": WebhookChannel,
 }
 
