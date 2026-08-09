@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 FROM python:3.12-alpine
 LABEL org.opencontainers.image.title="JellyNews"
 LABEL org.opencontainers.image.description="Self-hosted newsletter service for Jellyfin"
-LABEL org.opencontainers.image.licenses="AGPL-3.0"
+LABEL org.opencontainers.image.licenses="MIT"
 
 RUN addgroup -S jellynews && adduser -S jellynews -G jellynews
 
