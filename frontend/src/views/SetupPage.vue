@@ -164,6 +164,16 @@ async function testJellyfin() {
   }
 }
 
+function extractError(e) {
+  const detail = e.response?.data?.detail;
+  if (!detail) return e.message || "Setup failed. Please try again.";
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail.map((d) => `${d.loc?.join(".") || ""}: ${d.msg}`).join("; ");
+  }
+  return "Setup failed. Please try again.";
+}
+
 async function handleSubmit() {
   error.value = "";
   loading.value = true;
@@ -173,7 +183,7 @@ async function handleSubmit() {
     localStorage.setItem("access_token", data.access_token);
     localStorage.setItem("refresh_token", data.refresh_token);
   } catch (e) {
-    error.value = e.response?.data?.detail || "Setup failed. Please try again.";
+    error.value = extractError(e);
   } finally {
     loading.value = false;
   }

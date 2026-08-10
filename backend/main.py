@@ -133,7 +133,22 @@ app.add_middleware(I18nMiddleware)
 
 
 # In production, serve the built Vue frontend as static files
+import os as _os
+
 static_dir = Path(__file__).parent / "static"
 if static_dir.exists() and any(static_dir.iterdir()):
-    app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
+    # Mount /assets/ explicitly first so it takes priority
+    assets_dir = static_dir / "assets"
+    if assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets_static")
+
+    @app.get("/{full_path:path}", tags=["spa-fallback"])
+    async def spa_fallback(full_path: str):
+        """Serve index.html for unmatched SPA routes (client-side routing)."""
+        index_file = static_dir / "index.html"
+        if index_file.exists():
+            from fastapi.responses import FileResponse
+
+            return FileResponse(str(index_file))
+        raise HTTPException(status_code=404, detail="Not Found")
 
