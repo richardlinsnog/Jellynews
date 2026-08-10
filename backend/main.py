@@ -108,6 +108,7 @@ from api.routes_jellyfin import router as jellyfin_router  # noqa: E402
 from api.routes_logs import router as logs_router  # noqa: E402
 from api.routes_newsletter import router as newsletter_router  # noqa: E402
 from api.routes_setup import router as setup_router  # noqa: E402
+from api.routes_settings import router as settings_router  # noqa: E402
 from api.routes_subscribers import router as subscribers_router  # noqa: E402
 from api.routes_subscribers import unsub_router  # noqa: E402
 from api.routes_templates import router as templates_router  # noqa: E402
@@ -119,6 +120,7 @@ app.include_router(custom_news_router)
 app.include_router(jellyfin_router)
 app.include_router(logs_router)
 app.include_router(newsletter_router)
+app.include_router(settings_router)
 app.include_router(setup_router)
 app.include_router(subscribers_router)
 app.include_router(templates_router)

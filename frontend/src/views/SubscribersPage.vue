@@ -40,11 +40,20 @@
       <div class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 border border-gray-700">
         <h2 class="text-lg font-semibold text-white mb-4">Add Subscriber</h2>
         <form @submit.prevent="addSubscriber">
+          <label class="block text-sm text-gray-400 mb-1">Type</label>
+          <select
+            v-model="newType"
+            class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
+          >
+            <option value="email">Email</option>
+            <option value="telegram">Telegram</option>
+          </select>
+          <label class="block text-sm text-gray-400 mb-1">Destination</label>
           <input
-            v-model="newEmail"
-            type="email"
+            v-model="newDestination"
+            type="text"
             required
-            placeholder="email@example.com"
+            :placeholder="newType === 'email' ? 'email@example.com' : 'chat_id'"
             class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
           />
           <p v-if="addError" class="text-red-400 text-sm mb-3">{{ addError }}</p>
@@ -101,7 +110,8 @@
       <table class="w-full text-sm text-left text-gray-300">
         <thead class="text-xs uppercase text-gray-500 border-b border-gray-700">
           <tr>
-            <th class="py-3 px-4">Email</th>
+            <th class="py-3 px-4">Type</th>
+            <th class="py-3 px-4">Destination</th>
             <th class="py-3 px-4">Status</th>
             <th class="py-3 px-4">Added</th>
             <th class="py-3 px-4">Unsubscribed</th>
@@ -114,7 +124,12 @@
             :key="s.id"
             class="border-b border-gray-800 hover:bg-gray-750 transition-colors"
           >
-            <td class="py-3 px-4 font-medium text-white">{{ s.email }}</td>
+            <td class="py-3 px-4">
+              <span class="px-2 py-0.5 rounded-full text-xs font-medium border bg-indigo-900/50 text-indigo-400 border-indigo-800">
+                {{ s.destination_type || 'email' }}
+              </span>
+            </td>
+            <td class="py-3 px-4 font-medium text-white">{{ s.destination }}</td>
             <td class="py-3 px-4">
               <span
                 :class="s.active ? 'bg-green-900/50 text-green-400 border-green-800' : 'bg-gray-700/50 text-gray-500 border-gray-600'"
@@ -144,7 +159,7 @@
       <div class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-sm p-6 border border-gray-700">
         <h2 class="text-lg font-semibold text-white mb-2">Delete Subscriber</h2>
         <p class="text-sm text-gray-400 mb-4">
-          Remove <span class="text-white font-medium">{{ deleting.email }}</span>?
+          Remove <span class="text-white font-medium">{{ deleting.destination }}</span>?
         </p>
         <div class="flex justify-end gap-2">
           <button
@@ -176,7 +191,8 @@ const error = ref('')
 const filterActive = ref(null)
 
 const showAdd = ref(false)
-const newEmail = ref('')
+const newType = ref('email')
+const newDestination = ref('')
 const adding = ref(false)
 const addError = ref('')
 
@@ -211,9 +227,13 @@ async function addSubscriber() {
   adding.value = true
   addError.value = ''
   try {
-    await api.post('/subscribers', { email: newEmail.value.trim() })
+    await api.post('/subscribers', {
+      destination_type: newType.value,
+      destination: newDestination.value.trim(),
+    })
     showAdd.value = false
-    newEmail.value = ''
+    newDestination.value = ''
+    newType.value = 'email'
     await fetchSubscribers()
   } catch (e) {
     addError.value = e.response?.data?.detail || 'Failed to add subscriber'

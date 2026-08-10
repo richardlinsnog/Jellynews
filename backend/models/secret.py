@@ -14,6 +14,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 class SecretCategory(str, enum.Enum):
     SMTP = "smtp"
+    EMAIL = "email"
     TELEGRAM = "telegram"
     DISCORD = "discord"
     NTFY = "ntfy"
@@ -28,7 +29,7 @@ class Secret(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     category: Mapped[SecretCategory] = mapped_column(
-        Enum(SecretCategory, name="secret_category", create_type=True),
+        String(20),
         default=SecretCategory.OTHER,
         nullable=False,
     )

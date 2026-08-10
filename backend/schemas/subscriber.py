@@ -6,16 +6,23 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class SubscriberCreate(BaseModel):
-    email: EmailStr = Field(..., description="Subscriber email address")
+    destination_type: str = Field(default="email", description="email | telegram")
+    destination: str = Field(..., min_length=1, max_length=320, description="Email address, chat_id, etc.")
+
+
+class SubscriberUpdate(BaseModel):
+    destination: str | None = Field(None, min_length=1, max_length=320)
+    active: bool | None = None
 
 
 class SubscriberItem(BaseModel):
     id: int
-    email: str
+    destination_type: str = "email"
+    destination: str
     active: bool
     unsubscribed_at: datetime | None
     created_at: datetime

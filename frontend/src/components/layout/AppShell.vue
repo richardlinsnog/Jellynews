@@ -40,6 +40,7 @@ const nav = [
   { to: "/channels", label: "Channels", icon: "📡" },
   { to: "/news", label: "News", icon: "📝" },
   { to: "/subscribers", label: "Subscribers", icon: "👥" },
+  { to: "/settings", label: "Settings", icon: "⚙️" },
   { to: "/logs", label: "Logs", icon: "📋" },
 ];
 </script>

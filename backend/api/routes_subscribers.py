@@ -67,23 +67,30 @@ async def create_subscriber(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ) -> SubscriberItem:
-    email = body.email.lower().strip()
+    dest = body.destination.strip().lower()
+    dest_type = body.destination_type.strip().lower() or "email"
+
+    if dest_type not in ("email", "telegram"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported destination_type: {body.destination_type}",
+        )
 
     existing = await db.execute(
-        select(Subscriber).where(Subscriber.email == email),
+        select(Subscriber).where(Subscriber.destination == dest),
     )
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Subscriber '{email}' already exists",
+            detail=f"Subscriber '{dest}' already exists",
         )
 
-    subscriber = Subscriber(email=email, active=True)
+    subscriber = Subscriber(destination_type=dest_type, destination=dest, active=True)
     db.add(subscriber)
     await db.commit()
     await db.refresh(subscriber)
 
-    logger.info("subscriber_created", subscriber_id=subscriber.id, email=email)
+    logger.info("subscriber_created", subscriber_id=subscriber.id, destination=dest, destination_type=dest_type)
     return _to_item(subscriber)
 
 
@@ -107,7 +114,7 @@ async def delete_subscriber(
     logger.info(
         "subscriber_deleted",
         subscriber_id=subscriber_id,
-        email=subscriber.email,
+        destination=subscriber.destination,
     )
 
 
@@ -144,16 +151,20 @@ async def import_subscribers_csv(
             detail="CSV file appears to be empty",
         )
 
-    email_col = None
+    # Detect columns
+    destination_col = None
+    type_col = None
     for name in reader.fieldnames:
-        if name.strip().lower() in ("email", "e-mail", "mail"):
-            email_col = name
-            break
+        name_lower = name.strip().lower()
+        if name_lower in ("email", "e-mail", "mail", "destination"):
+            destination_col = name
+        elif name_lower in ("type", "destination_type"):
+            type_col = name
 
-    if email_col is None:
+    if destination_col is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="CSV must contain a column named 'email', 'e-mail', or 'mail'",
+            detail="CSV must contain a column named 'email', 'e-mail', 'mail', or 'destination'",
         )
 
     imported = 0
@@ -161,23 +172,26 @@ async def import_subscribers_csv(
     errors: list[str] = []
 
     for row_num, row in enumerate(reader, start=2):
-        raw = (row.get(email_col) or "").strip().lower()
-        if not raw:
-            errors.append(f"Row {row_num}: empty email")
+        raw_dest = (row.get(destination_col) or "").strip().lower()
+        if not raw_dest:
+            errors.append(f"Row {row_num}: empty destination")
             continue
 
-        if "@" not in raw or len(raw) > 320:
-            errors.append(f"Row {row_num}: invalid email '{raw[:60]}...'")
+        if len(raw_dest) > 320:
+            errors.append(f"Row {row_num}: value too long '{raw_dest[:60]}...'")
             continue
+
+        dest_type = (row.get(type_col) if type_col else None) or ""
+        dest_type = dest_type.strip().lower() or "email"
 
         existing = await db.execute(
-            select(Subscriber).where(Subscriber.email == raw),
+            select(Subscriber).where(Subscriber.destination == raw_dest),
         )
         if existing.scalar_one_or_none() is not None:
             skipped += 1
             continue
 
-        db.add(Subscriber(email=raw, active=True))
+        db.add(Subscriber(destination_type=dest_type, destination=raw_dest, active=True))
         imported += 1
 
     await db.commit()
@@ -255,7 +269,7 @@ async def unsubscribe(
     subscriber.unsubscribed_at = datetime.now(timezone.utc)
     await db.commit()
 
-    logger.info("subscriber_unsubscribed", subscriber_id=subscriber_id, email=subscriber.email)
+    logger.info("subscriber_unsubscribed", subscriber_id=subscriber_id, destination=subscriber.destination)
 
-    return {"message": "You have been unsubscribed successfully", "email": subscriber.email}
+    return {"message": "You have been unsubscribed successfully", "destination": subscriber.destination}
 

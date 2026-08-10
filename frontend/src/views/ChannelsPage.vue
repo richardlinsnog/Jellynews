@@ -103,7 +103,7 @@
             <label class="block text-sm font-medium text-gray-300 mb-2">Configuration</label>
             <div v-for="key in configKeys" :key="key" class="mb-2">
               <label class="text-xs text-gray-400 block mb-0.5">{{ key }}</label>
-              <input v-model="form.config[key]" type="password"
+              <input v-model="form.config[key]" type="text"
                 class="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 focus:border-brand-500 focus:outline-none"
                 :placeholder="editing ? '(leave empty to keep current)' : 'Enter value'" />
             </div>
@@ -124,7 +124,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, watch } from "vue";
 import api from "../services/api";
 
 const channels = ref([]);
@@ -146,6 +146,12 @@ const form = reactive({
   language: "en",
   active: true,
   config: {},
+});
+
+watch(() => form.channel_type, (type) => {
+  if (type && !editing.value) {
+    loadConfigKeys(type);
+  }
 });
 
 onMounted(async () => {
@@ -186,6 +192,16 @@ function editChannel(ch) {
   form.config = {};
   formError.value = "";
   showForm.value = true;
+  loadConfigKeys(ch.channel_type);
+}
+
+async function loadConfigKeys(type) {
+  try {
+    const { data } = await api.get(`/channels/types/${type}`);
+    configKeys.value = data.config_keys || [];
+  } catch {
+    configKeys.value = [];
+  }
 }
 
 async function saveChannel() {

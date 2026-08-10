@@ -42,6 +42,21 @@ async def list_channel_types(
     return ChannelListResponse(available_types=_registry().available)
 
 
+@router.get("/types/{channel_type}")
+@limiter.limit("60/minute")
+async def get_channel_type_info(
+    request: Request,
+    channel_type: str,
+    _user: dict = Depends(get_current_user),
+) -> dict:
+    """Return config keys and metadata for a channel type."""
+    ch_cls = _registry().get_channel(channel_type)
+    return {
+        "channel_type": ch_cls.name,
+        "config_keys": ch_cls.config_keys,
+    }
+
+
 # ── CRUD ───────────────────────────────────────────────────────────────
 
 

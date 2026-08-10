@@ -39,17 +39,29 @@ class SecretsVaultService:
 
     def _build_fernet(self) -> Fernet:
         if settings.SECRETS_ENCRYPTION_KEY:
-            key = settings.SECRETS_ENCRYPTION_KEY.encode()
+            raw = settings.SECRETS_ENCRYPTION_KEY.encode()
+            # Accept hex-encoded 64-char (32-byte) keys and convert to url-safe base64
+            if len(raw) == 64 and self._is_hex(raw):
+                raw = bytes.fromhex(settings.SECRETS_ENCRYPTION_KEY)
+                key = base64.urlsafe_b64encode(raw)
+            elif len(raw) == 32:
+                key = raw if self._is_base64_urlsafe(raw) else base64.urlsafe_b64encode(raw)
+            else:
+                key = raw
             logger.info("secrets_vault_key_source", source="env_var")
         else:
             key = self._derive_key()
             logger.info("secrets_vault_key_source", source="pbkdf2_derived")
 
-        # Fernet requires 32 url-safe base64 bytes
-        if len(key) == 32 and not self._is_base64_urlsafe(key):
-            key = base64.urlsafe_b64encode(key)
-
         return Fernet(key)
+
+    @staticmethod
+    def _is_hex(data: bytes) -> bool:
+        try:
+            int(data, 16)
+            return True
+        except (ValueError, TypeError):
+            return False
 
     def _derive_key(self) -> bytes:
         salt = hashlib.sha256(b"jellynews-vault-salt").digest()
