@@ -34,7 +34,7 @@
 
 ```bash
 # 1. Clone and configure
-git clone https://github.com/your-org/jellynews.git
+git clone https://github.com/richardlinsnog/Jellynews.git
 cd jellynews
 cp .env.example .env
 # Edit .env — set APP_SECRET_KEY (optionally also SECRETS_ENCRYPTION_KEY for production)
