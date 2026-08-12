@@ -35,6 +35,8 @@ class RenderedContent:
     body_html: str | None = None
     body_text: str | None = None
     body_markdown: str | None = None
+    inline_images: list[dict[str, bytes | str]] | None = None
+    # Each dict: {"content_id": "abc", "content": b"...", "content_type": "image/jpeg"}
 
 
 class NotificationChannel(ABC):

@@ -10,19 +10,29 @@ from pydantic import BaseModel, Field, field_validator
 
 
 class SubscriberCreate(BaseModel):
-    destination_type: str = Field(default="email", description="email | telegram")
-    destination: str = Field(..., min_length=1, max_length=320, description="Email address, chat_id, etc.")
+    name: str | None = Field(None, max_length=255)
+    email: str | None = Field(None, max_length=320)
+    phone: str | None = Field(None, max_length=60)
+    telegram_chat_id: str | None = Field(None, max_length=120)
+    tags: str | None = Field(None, max_length=500, description="Comma-separated tags")
 
 
 class SubscriberUpdate(BaseModel):
-    destination: str | None = Field(None, min_length=1, max_length=320)
+    name: str | None = Field(None, max_length=255)
+    email: str | None = Field(None, max_length=320)
+    phone: str | None = Field(None, max_length=60)
+    telegram_chat_id: str | None = Field(None, max_length=120)
+    tags: str | None = Field(None, max_length=500, description="Comma-separated tags")
     active: bool | None = None
 
 
 class SubscriberItem(BaseModel):
     id: int
-    destination_type: str = "email"
-    destination: str
+    name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    telegram_chat_id: str | None = None
+    tags: str | None = None
     active: bool
     unsubscribed_at: datetime | None
     created_at: datetime

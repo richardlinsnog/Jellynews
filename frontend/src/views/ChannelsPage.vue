@@ -57,13 +57,13 @@
     </div>
 
     <!-- Create/Edit modal -->
-    <div v-if="showForm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60" @click.self="closeForm">
-      <div class="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-lg m-4">
-        <div class="flex items-center justify-between p-5 border-b border-gray-800">
+    <div v-if="showForm" class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 py-8" @click.self="closeForm">
+      <div class="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-lg m-4 max-h-[85vh] flex flex-col">
+        <div class="flex items-center justify-between p-5 border-b border-gray-800 shrink-0">
           <h2 class="text-lg font-semibold">{{ editing ? 'Edit' : 'New' }} Channel</h2>
           <button @click="closeForm" class="text-gray-400 hover:text-gray-200 text-xl">&times;</button>
         </div>
-        <form @submit.prevent="saveChannel" class="p-5 space-y-4">
+        <form @submit.prevent="saveChannel" class="p-5 space-y-4 overflow-y-auto flex-1">
           <div>
             <label class="block text-sm font-medium text-gray-300 mb-1">Type</label>
             <select v-model="form.channel_type" :disabled="!!editing" required

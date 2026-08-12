@@ -11,6 +11,7 @@ from pathlib import Path
 
 from api.deps import get_current_user
 from api.rate_limit import limiter
+from core.database import get_db
 from core.logging import get_logger
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from schemas.template import (
@@ -22,6 +23,8 @@ from schemas.template import (
     TemplateRenderResponse,
 )
 from services.template_registry import TemplateRegistry
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = get_logger(__name__)
 
@@ -237,12 +240,34 @@ async def render_template(
     request: Request,
     template_id: str,
     payload: TemplateRenderRequest,
+    db: AsyncSession = Depends(get_db),
     _user: dict = Depends(get_current_user),
 ) -> TemplateRenderResponse:
-    """Render a preview with the supplied context."""
+    """Render a preview with the supplied context (server_name injected dynamically)."""
+    context = dict(payload.context) if payload.context else {}
+
+    # Inject server_name from AppSettings if not already provided
+    if "server_name" not in context:
+        try:
+            from models.app_settings import AppSettings
+            stmt = select(AppSettings).where(AppSettings.key == "server_name")
+            result = await db.execute(stmt)
+            row = result.scalar_one_or_none()
+            if row and row.value:
+                context["server_name"] = row.value
+        except Exception:
+            pass
+    if "server_name" not in context:
+        context["server_name"] = "Jellyfin"
+    if "items_added" not in context:
+        context["items_added"] = [
+            {"Name": "Inception", "ProductionYear": 2010, "Type": "Movie", "LibraryName": "Movies"},
+            {"Name": "Breaking Bad", "ProductionYear": 2008, "Type": "Series", "LibraryName": "TV Shows"},
+        ]
+
     reg = _registry()
     try:
-        rendered = reg.render(template_id, payload.channel, payload.context)
+        rendered = reg.render(template_id, payload.channel, context)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

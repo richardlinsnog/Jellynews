@@ -3,13 +3,22 @@
   <div>
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold text-white">News</h1>
-      <button
-        v-if="!editing && !creating"
-        @click="startCreate"
-        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors"
-      >
-        + New Article
-      </button>
+      <div v-if="!editing && !creating" class="flex items-center gap-2">
+        <button
+          v-if="selectedIds.length > 0"
+          @click="sendSelected"
+          :disabled="sendingSelected"
+          class="px-4 py-2 bg-green-700 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+        >
+          {{ sendingSelected ? 'Sending...' : `Send Selected (${selectedIds.length})` }}
+        </button>
+        <button
+          @click="startCreate"
+          class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors"
+        >
+          + New Article
+        </button>
+      </div>
     </div>
 
     <!-- Loading state -->
@@ -35,15 +44,22 @@
         :key="item.id"
         class="bg-gray-800 rounded-lg border border-gray-700 p-5 hover:border-gray-600 transition-colors"
       >
-        <div class="flex items-start justify-between gap-4">
+        <div class="flex items-start gap-3">
+          <input
+            v-if="item.status !== 'sent'"
+            type="checkbox"
+            :value="item.id"
+            v-model="selectedIds"
+            class="mt-1.5 h-4 w-4 rounded border-gray-600 bg-gray-700 text-indigo-600 focus:ring-indigo-500"
+          />
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
               <h3 class="text-lg font-semibold text-white truncate">{{ item.title }}</h3>
               <span
-                :class="item.status === 'sent' ? 'bg-green-900/50 text-green-400' : item.status === 'scheduled' ? 'bg-blue-900/50 text-blue-400' : 'bg-yellow-900/50 text-yellow-400'"
+                :class="statusBadgeClass(item.status)"
                 class="text-xs px-2 py-0.5 rounded-full font-medium"
               >
-                {{ item.status === 'sent' ? 'Sent' : item.status === 'scheduled' ? 'Scheduled' : 'Draft' }}
+                {{ statusLabel(item.status) }}
               </span>
             </div>
             <p class="text-sm text-gray-400 line-clamp-2">{{ item.body_text || stripHtml(item.body_html) }}</p>
@@ -191,6 +207,9 @@ const STATUS_OPTIONS = ['draft', 'scheduled', 'sent']
 
 const form = ref({ title: '', body_html: '', status: 'draft' })
 
+const selectedIds = ref([])
+const sendingSelected = ref(false)
+
 const editor = useEditor({
   extensions: [
     StarterKit.configure({ table: false }),
@@ -206,6 +225,16 @@ const editor = useEditor({
     },
   },
 })
+
+function statusLabel(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+function statusBadgeClass(s) {
+  if (s === 'sent') return 'bg-green-900/50 text-green-400'
+  if (s === 'scheduled') return 'bg-blue-900/50 text-blue-400'
+  return 'bg-yellow-900/50 text-yellow-400'
+}
 
 function stripHtml(html) {
   const div = document.createElement('div')
@@ -257,6 +286,25 @@ function cancelEdit() {
   creating.value = false
   editing.value = null
   saveError.value = ''
+  selectedIds.value = []
+}
+
+async function sendSelected() {
+  if (!selectedIds.value.length) return
+  sendingSelected.value = true
+  saveError.value = ''
+  try {
+    for (const id of selectedIds.value) {
+      await api.patch(`/news/${id}`, { status: 'scheduled' })
+    }
+    // Refresh the list
+    await fetchNews()
+    selectedIds.value = []
+  } catch (e) {
+    saveError.value = e.response?.data?.detail || e.message || 'Send failed'
+  } finally {
+    sendingSelected.value = false
+  }
 }
 
 async function save() {

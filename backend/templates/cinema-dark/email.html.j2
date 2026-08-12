@@ -3,47 +3,92 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ server_name }} — Now Playing</title>
+  <title>{{ server_name }} — What's New</title>
 </head>
-<body style="font-family: 'Georgia', serif; max-width: 640px; margin: 0 auto; background: #1a1a2e; color: #eaeaea; padding: 24px;">
+<body style="font-family: system-ui, -apple-system, sans-serif; max-width: 640px; margin: 0 auto; background: #fafafa; padding: 24px;">
 
-  <header style="text-align: center; padding: 40px 0 32px; border-bottom: 2px solid #e94560;">
-    <h1 style="margin: 0; font-size: 28px; letter-spacing: 2px; color: #e94560;">{{ server_name }}</h1>
-    <p style="margin: 12px 0 0; color: #aaa; font-style: italic;">Now Playing</p>
+  <header style="text-align: center; padding: 32px 0;">
+    {% if server_logo_cid %}<img src="{{ server_logo_cid }}" alt="{{ server_name }}" style="height: 48px; max-width: 200px; margin-bottom: 12px; display: inline-block;" />{% endif %}
+    {% if server_url %}<a href="{{ server_url }}" style="text-decoration: none; color: inherit;"><h1 style="margin: 0; font-size: 24px; color: #111;">{{ server_name }}</h1></a>{% else %}<h1 style="margin: 0; font-size: 24px; color: #111;">{{ server_name }}</h1>{% endif %}
+    <p style="margin: 8px 0 0; color: #666;">Fresh additions to your library</p>
   </header>
 
-  {% if items_added %}
+  {% if items_by_type %}
+    {% for type_name, type_items in items_by_type.items() %}
+      <section style="margin-bottom: 24px;">
+        <h2 style="font-size: 18px; color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 6px; margin-bottom: 12px;">
+          {{ type_name }}{% if type_name == 'Movie' %}s{% elif type_name == 'Series' %}{% else %}s{% endif %}
+        </h2>
+        {% for item in type_items %}
+          <article style="background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden;">
+            <table cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+              <tr>
+                {% if item.ImageUrl %}
+                <td style="width: 80px; vertical-align: top; padding-right: 14px;">
+                  <img src="{{ item.ImageUrl }}" alt="{{ item.Name }}" style="width: 80px; height: 120px; object-fit: cover; border-radius: 6px; display: block;" />
+                </td>
+                {% endif %}
+                <td style="vertical-align: top;">
+                  <strong style="font-size: 16px; color: #222;">{{ item.Name }}</strong>
+                  {% if item.ProductionYear %}
+                    <span style="color: #888;">({{ item.ProductionYear }})</span>
+                  {% endif %}
+                  {% if item.LibraryName %}
+                    <div style="margin-top: 2px; color: #888; font-size: 12px;">{{ item.LibraryName }}</div>
+                  {% endif %}
+                  {% if item.Overview %}
+                    <p style="margin-top: 8px; font-size: 13px; color: #666; line-height: 1.5;">{{ item.Overview | truncate(200) }}</p>
+                  {% endif %}
+                </td>
+              </tr>
+            </table>
+          </article>
+        {% endfor %}
+      </section>
+    {% endfor %}
+  {% elif items_added %}
     <main>
       {% for item in items_added %}
-        <article style="background: #16213e; border-left: 4px solid #e94560; border-radius: 4px; padding: 16px; margin-bottom: 16px;">
-          <h2 style="margin: 0; font-size: 18px; color: #fff;">{{ item.Name }}</h2>
-          <div style="margin-top: 6px; font-size: 13px; color: #ccc;">
-            <span>{{ item.Type }}</span>
-            {% if item.ProductionYear %}
-              &middot; <span>{{ item.ProductionYear }}</span>
-            {% endif %}
-            {% if item.LibraryName %}
-              &middot; <span>{{ item.LibraryName }}</span>
-            {% endif %}
-          </div>
-          {% if item.Overview %}
-            <p style="margin-top: 10px; font-size: 13px; color: #bbb; line-height: 1.6;">{{ item.Overview | truncate(200) }}</p>
-          {% endif %}
+        <article style="background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); overflow: hidden;">
+          <table cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
+            <tr>
+              {% if item.ImageUrl %}
+              <td style="width: 80px; vertical-align: top; padding-right: 14px;">
+                <img src="{{ item.ImageUrl }}" alt="{{ item.Name }}" style="width: 80px; height: 120px; object-fit: cover; border-radius: 6px; display: block;" />
+              </td>
+              {% endif %}
+              <td style="vertical-align: top;">
+                <strong style="font-size: 16px; color: #222;">{{ item.Name }}</strong>
+                {% if item.ProductionYear %}
+                  <span style="color: #888;">({{ item.ProductionYear }})</span>
+                {% endif %}
+                <div style="margin-top: 2px; font-size: 13px; color: #888;">
+                  {{ item.Type }}
+                  {% if item.LibraryName %}
+                    &middot; {{ item.LibraryName }}
+                  {% endif %}
+                </div>
+                {% if item.Overview %}
+                  <p style="margin-top: 8px; font-size: 13px; color: #666; line-height: 1.5;">{{ item.Overview | truncate(200) }}</p>
+                {% endif %}
+              </td>
+            </tr>
+          </table>
         </article>
       {% endfor %}
     </main>
   {% else %}
-    <p style="text-align: center; color: #888; font-style: italic;">The curtains are drawn — check back soon!</p>
+    <p style="text-align: center; color: #999;">No new items this time — check back soon!</p>
   {% endif %}
 
   {% if custom_news %}
-    <footer style="margin-top: 32px; padding: 20px; background: #16213e; border-radius: 4px; border: 1px solid #30305a;">
-      <h2 style="font-size: 15px; margin: 0 0 8px; color: #e94560;">🎬 Director&rsquo;s Cut</h2>
-      <p style="margin: 0; font-size: 14px; color: #ccc;">{{ custom_news }}</p>
+    <footer style="margin-top: 32px; padding: 16px; background: #fff; border-radius: 8px;">
+      <h2 style="font-size: 16px; margin: 0 0 8px;">📝 Updates</h2>
+      <p style="margin: 0; font-size: 14px; color: #444;">{{ custom_news }}</p>
     </footer>
   {% endif %}
 
-  <p style="text-align: center; margin-top: 40px; font-size: 11px; color: #666;">
+  <p style="text-align: center; margin-top: 32px; font-size: 12px; color: #aaa;">
     Sent by JellyNews &middot; {{ generated_at }}
   </p>
 

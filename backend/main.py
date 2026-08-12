@@ -144,6 +144,16 @@ if static_dir.exists() and any(static_dir.iterdir()):
     if assets_dir.is_dir():
         app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets_static")
 
+    @app.get("/favicon.svg", tags=["static"], include_in_schema=False)
+    async def favicon():
+        """Serve favicon from static directory."""
+        from fastapi.responses import FileResponse
+
+        favicon_path = static_dir / "favicon.svg"
+        if favicon_path.exists():
+            return FileResponse(str(favicon_path), media_type="image/svg+xml")
+        raise HTTPException(status_code=404)
+
     @app.get("/{full_path:path}", tags=["spa-fallback"])
     async def spa_fallback(full_path: str):
         """Serve index.html for unmatched SPA routes (client-side routing)."""

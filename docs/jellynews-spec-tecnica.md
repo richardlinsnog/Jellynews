@@ -1,8 +1,8 @@
 # 📄 Especificação Técnica — JellyNews
 ### Serviço de Newsletter Autohospedado para a Comunidade Jellyfin
 
-**Versão:** 2.0 (revisão "community-ready")
-**Status:** Draft para ingestão em OpenSpec / Qwen
+**Versão:** 3.0 (revisão "production-ready")
+**Status:** Release candidate
 **Herda de:** especificação original (Gemini/DeepSeek) — ver seção 0 para o que mudou
 
 ---
@@ -196,7 +196,7 @@ Credenciais de Jellyfin, SMTP, Telegram, Discord etc. continuam fora do `.env`, 
 ├── docker-compose.yml
 ├── docker-compose.example.yml  # versão comentada para novos usuários
 ├── .env.example
-├── LICENSE                     # AGPL-3.0 ou MIT — decisão de projeto (ver seção 9)
+├── LICENSE                     # MIT License
 ├── CONTRIBUTING.md             # como submeter um template/canal novo
 ├── /docs                       # mkdocs ou docusaurus — instalação, FAQ, troubleshooting
 ├── /backend
@@ -278,7 +278,7 @@ Credenciais de Jellyfin, SMTP, Telegram, Discord etc. continuam fora do `.env`, 
 ## 9. Considerações de Projeto Open Source
 
 Como o objetivo é servir a comunidade e não só você:
-- **Licença**: AGPL-3.0 é a escolha mais comum em projetos self-hosted de comunidade (Jellyfin em si usa GPL-2.0) — evita que alguém rode como SaaS fechado sem contribuir de volta. MIT é a alternativa mais permissiva, se a prioridade for adoção ampla. Vale decidir isso antes do primeiro commit público.
+- **Licença**: MIT — escolha permissiva para maximizar adoção pela comunidade. Permite uso em projetos comerciais e forks sem restrições de copyleft.
 - **`CONTRIBUTING.md`** com foco em como submeter um novo template ou canal (a estrutura plugável da seção 3–4 existe justamente para baixar a barreira de contribuição).
 - **Documentação pública** (mkdocs/Docusaurus) com: instalação em 5 minutos, troubleshooting (baseado nos "hurdles" abaixo), FAQ, comparação com Tautulli (referência que a própria spec original já citou).
 - **Versionamento semântico** + changelog automatizado (`release-please` ou similar), já que instâncias de terceiros vão atualizar via `docker compose pull`.
@@ -338,16 +338,23 @@ Como o objetivo é servir a comunidade e não só você:
 
 ## 12. Checklist Pós-Implementação
 
-- [ ] App recusa subir sem `APP_SECRET_KEY`?
-- [ ] Nenhuma credencial de terceiro aparece em texto puro no SQLite ou em nenhum response de API?
-- [ ] Templates importados exigem confirmação explícita antes de ativar?
-- [ ] Rate limiting ativo em `/auth/login` e `/*/test-connection`?
-- [ ] Preview de template usa exatamente o mesmo motor de render de produção?
-- [ ] Imagem Docker roda non-root e passou no scan Trivy?
-- [ ] `docker compose up -d` sobe do zero sem intervenção manual, terminando no wizard de setup?
-- [ ] Migrations Alembic rodam automaticamente em upgrade sem perda de dados?
-- [ ] E-mails têm `List-Unsubscribe` e fallback plain-text?
-- [ ] Documentação pública cobre instalação, troubleshooting e como contribuir um template?
+- [x] App recusa subir sem `APP_SECRET_KEY`?
+- [x] Nenhuma credencial de terceiro aparece em texto puro no SQLite ou em nenhum response de API?
+- [x] Templates importados exigem confirmação explícita antes de ativar?
+- [x] Rate limiting ativo em `/auth/login` e `/*/test-connection`?
+- [x] Preview de template usa exatamente o mesmo motor de render de produção?
+- [x] Imagem Docker roda non-root e passou no scan Trivy?
+- [x] `docker compose up -d` sobe do zero sem intervenção manual, terminando no wizard de setup?
+- [x] Migrations Alembic rodam automaticamente em upgrade sem perda de dados?
+- [x] E-mails têm `List-Unsubscribe` e fallback plain-text?
+- [x] Documentação pública cobre instalação, troubleshooting e como contribuir um template?
+- [x] Imagens inline embedadas via CID não quebram em clientes de e-mail?
+- [x] Logo customizado funciona inline via CID?
+- [x] Subscriber tags com case-insensitive matching?
+- [x] CustomNews integrado com newsletter (Scheduled→Sent)?
+- [x] Todos endpoints de leitura protegidos com autenticação?
+- [x] Image proxy funcional para imagens do Jellyfin?
+- [x] Thumbnail API usada para reduzir tamanho de e-mails?
 
 ---
 

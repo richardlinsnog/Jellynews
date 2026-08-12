@@ -22,20 +22,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table("subscribers") as batch_op:
-        batch_op.alter_column("email", new_column_name="destination")
-        batch_op.add_column(
-            sa.Column(
-                "destination_type",
-                sa.String(20),
-                nullable=False,
-                server_default="email",
-            ),
-        )
-        batch_op.create_index(
-            op.f("ix_subscribers_destination_type"),
-            ["destination_type"],
-        )
+    # No-op: subscribers table already created with final schema in fa7deb630522.
+    pass
 
 
 def downgrade() -> None:

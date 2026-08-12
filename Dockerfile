@@ -28,6 +28,7 @@ WORKDIR /app
 COPY --from=backend-deps /root/.local /home/jellynews/.local
 COPY --from=frontend-builder /build/frontend/dist /app/static
 COPY backend/ /app/
+RUN chown -R jellynews:jellynews /app
 COPY entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh

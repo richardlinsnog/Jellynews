@@ -35,8 +35,8 @@ class MediaLog(Base):
     )
     library_name: Mapped[str] = mapped_column(String(255), nullable=False)
     production_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    jellyfin_date_created: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
+    jellyfin_date_created: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
     first_seen_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

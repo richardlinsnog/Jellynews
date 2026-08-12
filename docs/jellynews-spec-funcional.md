@@ -51,10 +51,11 @@ Manter os usuários de um servidor Jellyfin informados sobre o que foi adicionad
 
 ### 3.3 Notícia manual (avisos do admin)
 1. Admin escreve um aviso no editor rich-text (ex: "manutenção programada para sábado").
-2. Pode marcar como **rascunho** (não entra na próxima newsletter), **agendada** (entra na próxima newsletter automática) ou **enviar agora** (dispara imediatamente, fora do cron, útil para avisos urgentes de segurança).
-3. Depois de enviada, fica em histórico — não é reenviada.
+2. Define o status: **rascunho** (draft — não entra na newsletter), **agendada** (scheduled — entra na próxima newsletter automática) ou **enviada** (sent — já foi).
+3. Artigos com status `scheduled` são automaticamente incluídos no footer da próxima newsletter e marcados como `sent` após o envio.
+4. O status `sent` é gerenciado automaticamente pelo sistema — o admin só escolhe entre `draft` e `scheduled`.
 
-**Critério de aceite:** um aviso urgente ("saiu uma vulnerabilidade crítica, servidor vai reiniciar em 10 minutos") não precisa esperar o próximo ciclo agendado.
+**Critério de aceite:** o footer da newsletter mostra os artigos customizados formatados em HTML; apenas artigos `scheduled` entram; o sistema faz a transição `scheduled→sent` automaticamente após envio bem-sucedido.
 
 ### 3.4 Escolha e customização de template
 1. Admin navega pela galeria de templates com preview visual (dados de exemplo, não precisa disparar e-mail real para ver).
@@ -154,7 +155,7 @@ Modelado como `key: str` (unique indexed) + `value: str` (JSON-serializado para 
 - `last_notified_at: datetime`
 
 ### 6.9 Licença
-**Decisão:** AGPL-3.0. Arquivo `LICENSE` já existe na raiz do projeto.
+**Decisão:** MIT. Arquivo `LICENSE` já existe na raiz do projeto.
 
 ### 6.10 DeliveryLog — payload_summary
 Campo `payload_summary` armazena JSON com:

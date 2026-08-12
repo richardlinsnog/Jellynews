@@ -56,20 +56,34 @@ async def record_notified_items(
     session: AsyncSession,
     items: list[JellyfinItem],
 ) -> None:
-    """Record items in MediaLog after successful notification."""
+    """Record items in MediaLog after successful notification (upsert)."""
+    from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
     now = datetime.datetime.now(datetime.UTC)
     for item in items:
-        log_entry = MediaLog(
+        stmt = sqlite_insert(MediaLog.__table__).values(
             jellyfin_item_id=item.id,
             item_name=item.name,
             item_type=_ITEM_TYPE_MAP.get(item.type, ItemType.MOVIE),
             library_name=item.library_name or "Unknown",
             production_year=item.production_year,
-            jellyfin_date_created=item.date_created,
+            jellyfin_date_created=item.effective_date,
             first_seen_at=now,
             last_notified_at=now,
             notified=True,
         )
-        session.add(log_entry)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["jellyfin_item_id"],
+            set_={
+                "item_name": item.name,
+                "item_type": _ITEM_TYPE_MAP.get(item.type, ItemType.MOVIE),
+                "library_name": item.library_name or "Unknown",
+                "production_year": item.production_year,
+                "jellyfin_date_created": item.effective_date,
+                "last_notified_at": now,
+                "notified": True,
+            },
+        )
+        await session.execute(stmt)
     await session.flush()
 

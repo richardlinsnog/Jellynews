@@ -142,7 +142,7 @@ async def test_jellyfin_connection(
 
     try:
         async with httpx.AsyncClient(timeout=_CONNECTION_CHECK_TIMEOUT) as client:
-            resp = await client.get(f"{url}/System/Info/Public", headers=headers)
+            resp = await client.get(f"{url}/System/Info", headers=headers)
 
         latency = round((time.monotonic() - start) * 1000, 1)
 

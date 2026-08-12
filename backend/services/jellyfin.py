@@ -140,6 +140,11 @@ class JellyfinService:
         logger.info("jellyfin_user_resolved", user_id=self._user_id)
         return user_id
 
+    async def fetch_users(self) -> list[JellyfinUser]:
+        """Return all users from the Jellyfin server."""
+        resp = await self._get("/Users")
+        return [JellyfinUser.model_validate(u) for u in resp.json()]
+
     # ------------------------------------------------------------------
     # Fetch items
     # ------------------------------------------------------------------
@@ -149,8 +154,9 @@ class JellyfinService:
         user_id: str | None = None,
         limit: int = 20,
         item_types: list[JellyfinItemType] | None = None,
+        library_ids: list[str] | None = None,
     ) -> list[JellyfinItem]:
-        """Return newest items visible to a user, optionally filtered by type."""
+        """Return newest items visible to a user, optionally filtered by type and library."""
         if user_id is None:
             user_id = await self._resolve_user_id()
 
@@ -162,22 +168,39 @@ class JellyfinService:
             ]
 
         include_item_types = ",".join(t.value for t in item_types)
-        params = {
-            "UserId": user_id,
-            "Limit": limit,
-            "IncludeItemTypes": include_item_types,
-            "Recursive": "true",
-            "SortBy": "DateCreated",
-            "SortOrder": "Descending",
-            "Fields": "ProductionYear",
-        }
 
-        resp = await self._get(
-            f"/Users/{user_id}/Items/Latest",
-            params=params,
-        )
-        data = JellyfinItemsResponse.model_validate(resp.json())
-        return data.items
+        if library_ids:
+            params = {
+                "UserId": user_id,
+                "Limit": limit,
+                "IncludeItemTypes": include_item_types,
+                "Recursive": "true",
+                "SortBy": "DateCreated",
+                "SortOrder": "Descending",
+                "ParentIds": ",".join(library_ids),
+                "Fields": "DateCreated,ProductionYear,Overview,ImageTags,Primary",
+            }
+            resp = await self._get(
+                f"/Users/{user_id}/Items",
+                params=params,
+            )
+        else:
+            params = {
+                "UserId": user_id,
+                "Limit": limit,
+                "IncludeItemTypes": include_item_types,
+                "Recursive": "true",
+                "SortBy": "DateCreated",
+                "SortOrder": "Descending",
+                "Fields": "DateCreated,ProductionYear,Overview,ImageTags,Primary",
+            }
+            resp = await self._get(
+                f"/Users/{user_id}/Items/Latest",
+                params=params,
+            )
+        items = JellyfinItemsResponse.from_api(resp.json()).items
+        self._inject_image_urls(items)
+        return items
 
     async def get_items_since(
         self,
@@ -203,8 +226,7 @@ class JellyfinService:
             "Recursive": "true",
             "SortBy": "DateCreated",
             "SortOrder": "Descending",
-            "MinDate": since.isoformat(),
-            "Fields": "ProductionYear",
+            "Fields": "DateCreated,ProductionYear,Overview,ImageTags,Primary",
             "Limit": 200,
         }
 
@@ -212,8 +234,64 @@ class JellyfinService:
             f"/Users/{user_id}/Items",
             params=params,
         )
-        data = JellyfinItemsResponse.model_validate(resp.json())
-        return data.items
+        items = JellyfinItemsResponse.from_api(resp.json()).items
+        self._inject_image_urls(items)
+        return items
+
+    def _inject_image_urls(self, items: list[JellyfinItem]) -> None:
+        """Set image_url for each item from its ImageTags + base URL."""
+        if not self._base_url:
+            return
+        for item in items:
+            if item.image_tags and "Primary" in item.image_tags:
+                tag = item.image_tags["Primary"]
+                item.image_url = (
+                    f"{self._base_url}/Items/{item.id}/Images/Primary"
+                    f"?tag={tag}&quality=90"
+                )
+
+    async def fetch_branding_logo(self) -> tuple[bytes, str]:
+        """Fetch the Jellyfin server's custom or default logo. Returns (content, content_type)."""
+        if not self._base_url:
+            raise JellyfinConnectionError("Jellyfin not configured")
+        # Try the branding endpoint first, fall back to the default icon
+        logo_paths = [
+            "/Branding/Logo",
+            "/web/img/banner-light.png",
+            "/web/img/icon-transparent.png",
+        ]
+        for path in logo_paths:
+            try:
+                async with self._client() as client:
+                    resp = await client.get(f"{self._base_url}{path}", timeout=10)
+                    if resp.status_code == 200 and resp.content:
+                        content_type = resp.headers.get("content-type", "image/png")
+                        return resp.content, content_type
+            except Exception:
+                continue
+        raise JellyfinConnectionError("Could not fetch server logo")
+
+    async def fetch_image(self, item_id: str, tag: str = "") -> tuple[bytes, str]:
+        """Fetch image bytes from Jellyfin. Returns (content, content_type)."""
+        if not self._base_url:
+            raise JellyfinConnectionError("Jellyfin not configured")
+        url = f"{self._base_url}/Items/{item_id}/Images/Primary"
+        params = {"maxWidth": 160, "maxHeight": 240, "quality": 60}
+        if tag:
+            params["tag"] = tag
+        async with self._client() as client:
+            resp = await client.get(url, params=params, timeout=15)
+            resp.raise_for_status()
+            content_type = resp.headers.get("content-type", "image/jpeg")
+            return resp.content, content_type
+
+    async def get_server_name(self) -> str | None:
+        """Return the friendly server name, cached after first fetch."""
+        try:
+            info = await self.get_server_info()
+            return info.name
+        except Exception:
+            return None
 
     async def fetch_library_names(self) -> list[str]:
         """Return the display names of all virtual folders (libraries)."""
@@ -221,6 +299,39 @@ class JellyfinService:
         resp = await self._get(f"/Users/{user_id}/Views")
         data = resp.json()
         return [item.get("Name", "") for item in data.get("Items", [])]
+
+    async def get_libraries(self) -> list[dict]:
+        """Return list of libraries with id, name and collection_type."""
+        resp = await self._get("/Library/VirtualFolders")
+        data = resp.json()
+        return [
+            {
+                "id": item.get("ItemId", ""),
+                "name": item.get("Name", ""),
+                "collection_type": item.get("CollectionType") or "",
+            }
+            for item in data
+        ]
+
+    @staticmethod
+    def library_types_to_item_types(libraries: list[dict], library_names: list[str]) -> list[JellyfinItemType]:
+        """Convert selected library names to Jellyfin item types for filtering.
+        'movies' → Movie, 'tvshows' → Series, no collection_type → all.
+        """
+        types: set[JellyfinItemType] = set()
+        name_map = {lib["name"]: lib["collection_type"] for lib in libraries}
+        for name in library_names:
+            ct = name_map.get(name, "")
+            if ct == "movies":
+                types.add(JellyfinItemType.MOVIE)
+            elif ct == "tvshows":
+                types.add(JellyfinItemType.SERIES)
+            elif ct == "music":
+                types.add(JellyfinItemType.AUDIO)
+            else:
+                # Mixed library — include all
+                types.update([JellyfinItemType.MOVIE, JellyfinItemType.SERIES, JellyfinItemType.AUDIO])
+        return list(types) if types else [JellyfinItemType.MOVIE, JellyfinItemType.SERIES, JellyfinItemType.AUDIO]
 
 
 

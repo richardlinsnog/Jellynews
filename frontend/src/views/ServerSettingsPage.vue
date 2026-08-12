@@ -50,6 +50,28 @@
         <p v-if="errorMessage" class="text-red-400 text-sm">{{ errorMessage }}</p>
       </form>
     </div>
+
+    <!-- Branding Logo -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-2xl mt-6">
+      <h2 class="text-lg font-semibold mb-4">Branding Logo</h2>
+      <p class="text-sm text-gray-400 mb-4">Upload a custom logo for newsletter headers (PNG or JPEG). If none is set, the Jellyfin server logo will be used (if available).</p>
+
+      <div v-if="logoPreview" class="mb-4 flex items-center gap-4">
+        <img :src="logoPreview" alt="Logo preview" class="h-12 object-contain rounded bg-gray-800 p-1" />
+        <button @click="removeLogo" :disabled="logoUploading"
+          class="text-xs text-red-400 hover:text-red-300 disabled:opacity-50">
+          {{ logoUploading ? 'Removing...' : 'Remove' }}
+        </button>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <label class="cursor-pointer rounded-lg border border-gray-700 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 transition-colors">
+          {{ logoPreview ? 'Change Logo' : 'Upload Logo' }}
+          <input type="file" accept="image/png,image/jpeg" class="hidden" @change="onLogoSelected" />
+        </label>
+        <span v-if="logoMessage" class="text-xs" :class="logoError ? 'text-red-400' : 'text-green-400'">{{ logoMessage }}</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -70,6 +92,12 @@ const form = reactive({
   jellyfin_api_key: "",
 });
 
+// Logo state
+const logoPreview = ref("");
+const logoUploading = ref(false);
+const logoMessage = ref("");
+const logoError = ref(false);
+
 onMounted(async () => {
   try {
     const { data } = await api.get("/settings/jellyfin");
@@ -80,7 +108,55 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
+  checkLogoStatus();
 });
+
+async function checkLogoStatus() {
+  try {
+    const { data } = await api.get("/settings/logo/status");
+    if (data.has_logo) {
+      logoPreview.value = "/api/v1/settings/logo?" + Date.now();
+    }
+  } catch { /* logo not available */ }
+}
+
+function onLogoSelected(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  logoUploading.value = true;
+  logoMessage.value = "";
+  logoError.value = false;
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  api.post("/settings/logo", formData, { headers: { "Content-Type": "multipart/form-data" } })
+    .then(() => {
+      logoPreview.value = "/api/v1/settings/logo?" + Date.now();
+      logoMessage.value = "Logo uploaded.";
+    })
+    .catch((err) => {
+      logoError.value = true;
+      logoMessage.value = err.response?.data?.detail || "Upload failed";
+    })
+    .finally(() => { logoUploading.value = false; });
+}
+
+async function removeLogo() {
+  logoUploading.value = true;
+  logoMessage.value = "";
+  logoError.value = false;
+  try {
+    await api.delete("/settings/logo");
+    logoPreview.value = "";
+    logoMessage.value = "Logo removed.";
+  } catch (e) {
+    logoError.value = true;
+    logoMessage.value = e.response?.data?.detail || "Failed to remove";
+  } finally {
+    logoUploading.value = false;
+  }
+}
 
 async function testConnection() {
   testing.value = true;

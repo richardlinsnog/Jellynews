@@ -1,14 +1,15 @@
 """CustomNews CRUD endpoints with nh3 sanitization and status workflow."""
 
-from __future__ import annotations
-
 from api.deps import get_current_user
 from api.rate_limit import limiter
 from core.audit import audit_log
 from core.database import get_db
 from core.logging import get_logger
 from core.sanitize import html_to_text, sanitize_html
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+
+from typing import Annotated
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from models.custom_news import CustomNews, NewsStatus
 from schemas.custom_news import (
     CustomNewsCreate,
@@ -38,6 +39,7 @@ async def list_news(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> CustomNewsListResponse:
     stmt = select(CustomNews)
     count_stmt = select(func.count()).select_from(CustomNews)
@@ -72,18 +74,18 @@ async def get_news(
 @limiter.limit("30/minute")
 async def create_news(
     request: Request,
-    body: CustomNewsCreate,
+    payload: CustomNewsCreate = Body(),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ) -> CustomNewsItem:
-    body_html = sanitize_html(body.body_html)
+    body_html = sanitize_html(payload.body_html)
     body_text = html_to_text(body_html)
 
-    news_status = body.status if body.status in _VALID_STATUSES else NewsStatus.DRAFT
+    news_status = payload.status if payload.status in _VALID_STATUSES else NewsStatus.DRAFT
 
     author_id = int(current_user["sub"])
     news = CustomNews(
-        title=body.title.strip(),
+        title=payload.title.strip(),
         body_html=body_html,
         body_text=body_text,
         author_id=author_id,
@@ -110,7 +112,7 @@ async def create_news(
 @limiter.limit("30/minute")
 async def update_news(
     news_id: int,
-    body: CustomNewsUpdate,
+    payload: Annotated[CustomNewsUpdate, Body()],
     request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -121,18 +123,18 @@ async def update_news(
     if news is None:
         raise HTTPException(status_code=404, detail="News item not found")
 
-    if body.title is not None:
-        news.title = body.title.strip()
-    if body.body_html is not None:
-        news.body_html = sanitize_html(body.body_html)
+    if payload.title is not None:
+        news.title = payload.title.strip()
+    if payload.body_html is not None:
+        news.body_html = sanitize_html(payload.body_html)
         news.body_text = html_to_text(news.body_html)
-    if body.status is not None:
-        if body.status not in _VALID_STATUSES:
+    if payload.status is not None:
+        if payload.status not in _VALID_STATUSES:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid status: {body.status}. Use one of: {_VALID_STATUSES}",
+                detail=f"Invalid status: {payload.status}. Use one of: {_VALID_STATUSES}",
             )
-        news.status = body.status
+        news.status = payload.status
 
     await db.commit()
     await db.refresh(news)

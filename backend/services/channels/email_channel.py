@@ -1,11 +1,13 @@
 
 
 """Email delivery channel — SMTP with premailer CSS inlining, List-Unsubscribe,
-and multipart/alternative support."""
+multipart/alternative support, and inline CID image embedding."""
 
 from __future__ import annotations
 
 import time
+import uuid
+from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Any
@@ -44,7 +46,7 @@ class EmailChannel(NotificationChannel):
     ]
 
     async def validate_config(self, config: dict[str, Any]) -> bool:
-        required = ["smtp_host", "smtp_port", "from_address", "to_address"]
+        required = ["smtp_host", "smtp_port", "from_address"]
         for key in required:
             if key not in config or not config[key]:
                 return False
@@ -53,30 +55,55 @@ class EmailChannel(NotificationChannel):
     async def send(self, config: dict[str, Any], content: RenderedContent) -> SendResult:
         start = time.monotonic()
         try:
-            msg = MIMEMultipart("alternative")
+            has_images = bool(content.inline_images)
+
+            if has_images:
+                msg = MIMEMultipart("related")
+                alt_part = MIMEMultipart("alternative")
+                msg.attach(alt_part)
+            else:
+                msg = MIMEMultipart("alternative")
+                alt_part = msg
+
             msg["From"] = config["from_address"]
-            msg["To"] = config["to_address"]
+
+            # Use to_address only when there are no subscriber emails to deliver to.
+            # When subscribers are present (e.g. tag-filtered), use from_address as
+            # the envelope To so that to_address does not receive an unintended copy.
+            to_addr = config.get("to_address", "").strip()
+            subscriber_emails = config.pop("_subscriber_emails", None)
+            if subscriber_emails:
+                msg["Bcc"] = ", ".join(subscriber_emails)
+                to_addr = config["from_address"]
+            msg["To"] = to_addr or config["from_address"]
             msg["Subject"] = content.subject or "Newsletter"
+            msg["Message-ID"] = f"<{uuid.uuid4().hex[:16]}.jellynews@localhost>"
 
             # RFC 2369 / RFC 8058 List-Unsubscribe header
             unsubscribe_url = _unsubscribe_url(config)
             msg["List-Unsubscribe"] = f"<{unsubscribe_url}>"
             msg["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
 
-            # Inject subscriber list via BCC for mass-mailing
-            subscriber_emails = config.pop("_subscriber_emails", None)
-            if subscriber_emails:
-                msg["Bcc"] = ", ".join(subscriber_emails)
-
             if content.body_text:
-                msg.attach(MIMEText(content.body_text, "plain", "utf-8"))
+                alt_part.attach(MIMEText(content.body_text, "plain", "utf-8"))
             if content.body_html:
-                # Inline CSS for email client compatibility
                 try:
-                    inlined_html = transform(content.body_html)
+                    # Protect cid: URLs from premailer (it breaks them as relative URLs)
+                    safe_html = content.body_html.replace("cid:", "X-CID-TOKEN:")
+                    inlined_html = transform(safe_html)
+                    inlined_html = inlined_html.replace("X-CID-TOKEN:", "cid:")
                 except Exception:
                     inlined_html = content.body_html
-                msg.attach(MIMEText(inlined_html, "html", "utf-8"))
+                alt_part.attach(MIMEText(inlined_html, "html", "utf-8"))
+
+            # Attach inline images for CID references
+            if has_images:
+                for img in content.inline_images or []:
+                    mime_img = MIMEImage(img["content"], _subtype=img.get("subtype", "jpeg"))  # type: ignore[arg-type]
+                    mime_img.add_header("Content-ID", f"<{img['content_id']}>")
+                    mime_img.add_header("Content-Disposition", "inline", filename=img.get("filename", "image.jpg"))
+                    mime_img.add_header("X-Attachment-Id", str(img["content_id"]))
+                    msg.attach(mime_img)
 
             use_tls = str(config.get("smtp_use_tls", "true")).lower() == "true"
 

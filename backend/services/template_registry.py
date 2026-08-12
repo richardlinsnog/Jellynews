@@ -41,9 +41,12 @@ _CHANNEL_TO_EXTENSION: dict[str, str] = {
 # Variables that are safe for *all* templates — the Master Allowlist (spec §3.3).
 _SAFE_GLOBALS: set[str] = {
     "items_added",
+    "items_by_type",
     "custom_news",
     "server_name",
     "server_url",
+    "server_logo_cid",
+    "total_types",
     "generated_at",
 }
 
