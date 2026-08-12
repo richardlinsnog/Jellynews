@@ -22,6 +22,14 @@
         <p class="text-gray-400 text-sm">Checking instance status...</p>
       </div>
 
+      <div v-else-if="statusError" class="text-center py-12">
+        <p class="text-red-400 text-sm">{{ statusError }}</p>
+        <button type="button" @click="checkStatus"
+          class="rounded-lg border border-gray-700 px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-800 mt-4 transition-colors">
+          Retry
+        </button>
+      </div>
+
       <div v-else-if="!setupRequired && !setupDone" class="text-center py-12">
         <p class="text-gray-400">Setup already completed.</p>
         <router-link to="/login" class="text-brand-500 hover:underline text-sm mt-4 inline-block">Go to login</router-link>
@@ -126,6 +134,7 @@ const statusLoading = ref(true);
 const loading = ref(false);
 const testLoading = ref(false);
 const error = ref("");
+const statusError = ref("");
 const setupRequired = ref(false);
 const setupDone = ref(false);
 const testResult = ref(null);
@@ -137,16 +146,20 @@ const form = reactive({
   jellyfin_api_key: "",
 });
 
-onMounted(async () => {
+async function checkStatus() {
+  statusLoading.value = true;
+  statusError.value = "";
   try {
     const { data } = await axios.get("/api/v1/setup/status");
     setupRequired.value = data.setup_required;
   } catch {
-    setupRequired.value = false;
+    statusError.value = "Could not check setup status. Please try again.";
   } finally {
     statusLoading.value = false;
   }
-});
+}
+
+onMounted(checkStatus);
 
 async function testJellyfin() {
   testResult.value = null;

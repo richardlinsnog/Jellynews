@@ -42,7 +42,12 @@ class Settings(BaseSettings):
     @property
     def db_path(self) -> Path:
         """Absolute path to the SQLite database file."""
-        return Path(self.DATABASE_URL.replace("sqlite:///", "")).resolve()
+        url = self.DATABASE_URL
+        for prefix in ("sqlite+aiosqlite:///", "sqlite:///"):
+            if url.startswith(prefix):
+                url = url[len(prefix):]
+                break
+        return Path(url).resolve()
 
     @property
     def secrets_encryption_key(self) -> str:

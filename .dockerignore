@@ -20,6 +20,15 @@ frontend/node_modules/
 .env
 .env.*
 
+# Database / data directories — never bake local data into images
+data/
+backend/data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
 # IDE
 .vscode/
 .idea/
