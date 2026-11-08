@@ -136,7 +136,7 @@ async def test_jellyfin_connection(
         url = "https://" + url
 
     headers = {
-        "X-Emby-Token": body.jellyfin_api_key,
+        "Authorization": f'MediaBrowser Token="{body.jellyfin_api_key}"',
         "Accept": "application/json",
     }
 

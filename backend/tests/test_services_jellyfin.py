@@ -73,17 +73,23 @@ class TestJellyfinServiceInit:
 
 
 class TestJellyfinAuthHeaders:
-    def test_auth_headers_contain_token_and_api_key(self) -> None:
+    def test_auth_headers_use_authorization_scheme(self) -> None:
         svc = JellyfinService(base_url=FAKE_BASE, api_key=FAKE_KEY)
         headers = svc._auth_headers()
-        assert "X-Emby-Authorization" in headers
-        assert "MediaBrowser" in headers["X-Emby-Authorization"]
-        assert headers["X-MediaBrowser-Token"] == FAKE_KEY
+        assert "Authorization" in headers
+        assert headers["Authorization"].startswith("MediaBrowser ")
+        assert f'Token="{FAKE_KEY}"' in headers["Authorization"]
+        assert 'Client="JellyNews"' in headers["Authorization"]
+        assert "X-Emby-Authorization" not in headers
+        assert "X-MediaBrowser-Token" not in headers
 
     def test_auth_headers_work_without_api_key(self) -> None:
         svc = JellyfinService(base_url=FAKE_BASE, api_key=None)
         headers = svc._auth_headers()
-        assert "X-Emby-Authorization" in headers
+        assert "Authorization" in headers
+        assert headers["Authorization"].startswith("MediaBrowser ")
+        assert 'Token="' not in headers["Authorization"]
+        assert "X-Emby-Authorization" not in headers
         assert "X-MediaBrowser-Token" not in headers
 
 
@@ -242,9 +248,10 @@ class TestGetLatestItems:
             limit=5,
             item_types=[JellyfinItemType.AUDIO],
         )
+        assert mock_get.call_args.args[0] == "/Items/Latest"
         params = mock_get.call_args.kwargs["params"]
-        assert params["Limit"] == 5
-        assert params["IncludeItemTypes"] == "Audio"
+        assert params["limit"] == 5
+        assert params["includeItemTypes"] == "Audio"
 
     @pytest.mark.asyncio
     @patch.object(JellyfinService, "_get", new_callable=AsyncMock)
@@ -255,7 +262,7 @@ class TestGetLatestItems:
         svc = JellyfinService(base_url=FAKE_BASE, api_key=FAKE_KEY)
         svc._user_id = "u1"
         await svc.get_latest_items()
-        types = mock_get.call_args.kwargs["params"]["IncludeItemTypes"]
+        types = mock_get.call_args.kwargs["params"]["includeItemTypes"]
         assert "Movie" in types
         assert "Series" in types
         assert "Audio" in types
@@ -269,7 +276,7 @@ class TestGetLatestItems:
 class TestGetItemsSince:
     @pytest.mark.asyncio
     @patch.object(JellyfinService, "_get", new_callable=AsyncMock)
-    async def test_includes_min_date(self, mock_get: AsyncMock) -> None:
+    async def test_items_since_uses_items_endpoint(self, mock_get: AsyncMock) -> None:
         mock_get.return_value = _mock_resp(
             {"Items": [], "TotalRecordCount": 0},
         )
@@ -277,7 +284,11 @@ class TestGetItemsSince:
         svc._user_id = "u1"
         since = datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC)
         await svc.get_items_since(since=since)
-        assert "MinDate" in mock_get.call_args.kwargs["params"]
+        assert mock_get.call_args.args[0] == "/Items"
+        params = mock_get.call_args.kwargs["params"]
+        assert params["limit"] == 200
+        assert params["userId"] == "u1"
+        assert params["includeItemTypes"] == "Movie,Series,Audio"
 
 
 # ---------------------------------------------------------------------------

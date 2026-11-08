@@ -70,19 +70,18 @@ class JellyfinService:
         )
 
     def _auth_headers(self) -> dict[str, str]:
-        token_parts = [
-            'MediaBrowser Client="JellyNews"',
+        # Jellyfin 12.0 removed the legacy X-Emby-* / X-MediaBrowser-Token headers.
+        # The only supported method is the standard Authorization header with the
+        # MediaBrowser scheme (see https://gist.github.com/nielsvanvelzen/ea047d9028f676185832e51ffaf12a6f).
+        parts = [
+            'Client="JellyNews"',
             f'Device="{settings.APP_ENV}"',
             f'DeviceId="jellynews-{settings.APP_ENV}"',
             'Version="0.1.0"',
         ]
-        token = ", ".join(token_parts)
-        headers: dict[str, str] = {
-            "X-Emby-Authorization": token,
-        }
         if self._api_key:
-            headers["X-MediaBrowser-Token"] = self._api_key
-        return headers
+            parts.insert(0, f'Token="{self._api_key}"')
+        return {"Authorization": "MediaBrowser " + ", ".join(parts)}
 
     async def _get(self, path: str, params: dict | None = None) -> httpx.Response:
         async with self._client() as client:
@@ -171,33 +170,24 @@ class JellyfinService:
 
         if library_ids:
             params = {
-                "UserId": user_id,
-                "Limit": limit,
-                "IncludeItemTypes": include_item_types,
-                "Recursive": "true",
-                "SortBy": "DateCreated",
-                "SortOrder": "Descending",
-                "ParentIds": ",".join(library_ids),
-                "Fields": "DateCreated,ProductionYear,Overview,ImageTags,Primary",
+                "userId": user_id,
+                "limit": limit,
+                "includeItemTypes": include_item_types,
+                "recursive": "true",
+                "sortBy": "DateCreated",
+                "sortOrder": "Descending",
+                "parentId": ",".join(library_ids),
+                "fields": "DateCreated,ProductionYear,Overview,ImageTags,Primary",
             }
-            resp = await self._get(
-                f"/Users/{user_id}/Items",
-                params=params,
-            )
+            resp = await self._get("/Items", params=params)
         else:
             params = {
-                "UserId": user_id,
-                "Limit": limit,
-                "IncludeItemTypes": include_item_types,
-                "Recursive": "true",
-                "SortBy": "DateCreated",
-                "SortOrder": "Descending",
-                "Fields": "DateCreated,ProductionYear,Overview,ImageTags,Primary",
+                "userId": user_id,
+                "limit": limit,
+                "includeItemTypes": include_item_types,
+                "fields": "DateCreated,ProductionYear,Overview,ImageTags,Primary",
             }
-            resp = await self._get(
-                f"/Users/{user_id}/Items/Latest",
-                params=params,
-            )
+            resp = await self._get("/Items/Latest", params=params)
         items = JellyfinItemsResponse.from_api(resp.json()).items
         self._inject_image_urls(items)
         return items
@@ -221,19 +211,16 @@ class JellyfinService:
 
         include_item_types = ",".join(t.value for t in item_types)
         params = {
-            "UserId": user_id,
-            "IncludeItemTypes": include_item_types,
-            "Recursive": "true",
-            "SortBy": "DateCreated",
-            "SortOrder": "Descending",
-            "Fields": "DateCreated,ProductionYear,Overview,ImageTags,Primary",
-            "Limit": 200,
+            "userId": user_id,
+            "includeItemTypes": include_item_types,
+            "recursive": "true",
+            "sortBy": "DateCreated",
+            "sortOrder": "Descending",
+            "fields": "DateCreated,ProductionYear,Overview,ImageTags,Primary",
+            "limit": 200,
         }
 
-        resp = await self._get(
-            f"/Users/{user_id}/Items",
-            params=params,
-        )
+        resp = await self._get("/Items", params=params)
         items = JellyfinItemsResponse.from_api(resp.json()).items
         self._inject_image_urls(items)
         return items
@@ -256,7 +243,7 @@ class JellyfinService:
             raise JellyfinConnectionError("Jellyfin not configured")
         # Try the branding endpoint first, fall back to the default icon
         logo_paths = [
-            "/Branding/Logo",
+            "/Branding/Splashscreen",
             "/web/img/banner-light.png",
             "/web/img/icon-transparent.png",
         ]
@@ -296,7 +283,7 @@ class JellyfinService:
     async def fetch_library_names(self) -> list[str]:
         """Return the display names of all virtual folders (libraries)."""
         user_id = await self._resolve_user_id()
-        resp = await self._get(f"/Users/{user_id}/Views")
+        resp = await self._get("/UserViews", params={"userId": user_id})
         data = resp.json()
         return [item.get("Name", "") for item in data.get("Items", [])]
 
