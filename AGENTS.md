@@ -2,7 +2,7 @@
 
 ## Visão Geral
 **JellyNews** é um serviço de newsletter self-hosted para Jellyfin. Stack: **FastAPI + SQLite + Vue 3 + Tailwind + Docker**.  
-Branch atual: `feat/week-8-hardening-final` — Release candidate, pronto para publicação.
+Branch atual: `main` no Gitea (interno); GitHub (externo) em `feat/week-8-hardening-final`.
 
 ## Estrutura do Projeto
 ```
@@ -69,7 +69,16 @@ O projeto está **muito avançado** — bem além do plano original de 6 semanas
 10. SVGs rejeitados no upload de logo
 
 ## Environment Atual
-- **Repositório**: `/home/ubuntu/workspace/Jellynews` (sync com `Jellynews-deploy`)
-- **Branch**: `feat/week-8-hardening-final`
-- **Database**: SQLite em `backend/data/jellynews.db`
-- **Docker**: `docker compose up -d` em `:8000`
+- **Repositório local**: `/home/ubuntu/workspace/Richard/Jellynews`
+- **Remotes**:
+  - `gitea` → repositório **interno** de desenvolvimento (Gitea self-hosted; URL no `.git/config`)
+  - `origin` → `https://github.com/richardlinsnog/Jellynews.git` (publicação **externa**)
+- **Branch**: `main` no Gitea; GitHub ainda em `feat/week-8-hardening-final`
+- **Database**: SQLite em `backend/data/jellynews.db` (não versionado)
+- **Docker**: `docker compose up -d` em `:8000` (servidor: richard-server)
+
+## Workflow de Desenvolvimento / Publicação
+1. Desenvolvimento e commits vão para o **Gitea** (interno): `git push gitea main`.
+2. O usuário testa a versão interna.
+3. Após aprovação explícita, publicar no **GitHub** (externo): `git push origin ...`.
+   - ⚠️ O push para o GitHub **sempre** exige aprovação do usuário após o teste interno.
